@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Purple success toast */
+.Toastify__toast--success {
+  background-color: #7e22ce !important; /* Tailwind purple-700 */
+  color: #fff !important;
+}
+
+/* Optional: Error toast */
+.Toastify__toast--error {
+  background-color: #dc2626 !important; /* Tailwind red-600 */
+  color: #fff !important;
+}
+
+/* Optional: Warning toast */
+.Toastify__toast--warning {
+  background-color: #f59e0b !important; /* Tailwind amber-500 */
+  color: #fff !important;
+}
+
+/* Optional: Info toast */
+.Toastify__toast--info {
+  background-color: #2563eb !important; /* Tailwind blue-600 */
+  color: #fff !important;
+}
