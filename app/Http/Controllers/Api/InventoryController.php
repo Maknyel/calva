@@ -25,13 +25,18 @@ class InventoryController extends Controller
 
     public function store(Request $request)
     {
+        // Fix: Convert string "null" to actual null
+        if ($request->image === "null" || $request->image === "") {
+            $request->merge(['image' => null]);
+        }
+
         $data = $request->validate([
             'distributor_id' => 'nullable|exists:distributors,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'inventory_type_id' => 'required|exists:inventory_types,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:2048', // optional image
             'reordering_level' => 'required|integer',
             'unit' => 'required|string|max:255',
             'current_quantity' => 'required|integer',
@@ -40,15 +45,40 @@ class InventoryController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('inventory', 'public');
+
+            // Store file
+            $path = $request->file('image')->store('inventory', 'public');
+            $data['image'] = $path;
+
+            // ---- Hostinger Workaround ----
+            $source = storage_path('app/public/' . $path);
+            $destination = public_path('storage/' . $path);
+
+            if (!file_exists(dirname($destination))) {
+                mkdir(dirname($destination), 0755, true);
+            }
+
+            copy($source, $destination);
+            // -------------------------------
+
+        } else {
+            $data['image'] = null; // optional image
         }
 
         $inventory = Inventory::create($data);
+
         return response()->json($inventory, 201);
     }
 
+
+
     public function update(Request $request, Inventory $inventory)
     {
+        // Fix: Convert string "null" or empty string to actual null
+        if ($request->image === "null" || $request->image === "") {
+            $request->merge(['image' => null]);
+        }
+
         // Validate all fields except image
         $data = $request->validate([
             'distributor_id' => 'nullable|exists:distributors,id',
@@ -63,25 +93,42 @@ class InventoryController extends Controller
             'current_sale_price' => 'required|numeric',
         ]);
 
-        // Only validate and update image if a file is uploaded
+        // Handle image if uploaded
         if ($request->hasFile('image')) {
             $request->validate([
-                'image' => 'image|max:2048', // only validate if a file is uploaded
+                'image' => 'image|max:2048', // validate only if a file is uploaded
             ]);
 
             // Delete old image if exists
             if ($inventory->image) {
-                Storage::disk('public')->delete($inventory->image);
+                $oldPath = public_path('storage/' . $inventory->image);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath); // remove from public/storage
+                }
+                Storage::disk('public')->delete($inventory->image); // remove from storage/app/public
             }
 
             // Store new image
-            $data['image'] = $request->file('image')->store('inventory', 'public');
+            $path = $request->file('image')->store('inventory', 'public');
+            $data['image'] = $path;
+
+            // ---- Hostinger Workaround ----
+            $source = storage_path('app/public/' . $path);
+            $destination = public_path('storage/' . $path);
+
+            if (!file_exists(dirname($destination))) {
+                mkdir(dirname($destination), 0755, true);
+            }
+
+            copy($source, $destination);
+            // -------------------------------
         }
 
         $inventory->update($data);
 
         return response()->json($inventory);
     }
+
 
     public function destroy(Inventory $inventory)
     {
