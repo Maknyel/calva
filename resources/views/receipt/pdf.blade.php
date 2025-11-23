@@ -82,10 +82,10 @@
         @foreach($order as $item)
         <tr>
             <td>{{ $item->quantity_sold }} x {{ $item->name }}</td>
-            <td class="text-right">₱ {{ number_format($item->total, 2) }}</td>
+            <td class="text-right">&#8369; {{ number_format($item->total, 2) }}</td>
         </tr>
         <tr>
-            <td colspan="2" style="font-size: 10px;">₱ {{ number_format($item->sale_price_cost, 2) }} / Unit</td>
+            <td colspan="2" style="font-size: 10px;">&#8369; {{ number_format($item->sale_price_cost, 2) }} / Unit</td>
         </tr>
         @endforeach
     </table>
@@ -96,11 +96,11 @@
     <table>
         <tr>
             <td class="total">Total</td>
-            <td class="text-right total">₱ {{ number_format($inv_group->grand_total_amount, 2) }}</td>
+            <td class="text-right total">&#8369; {{ number_format($inv_group->grand_total_amount, 2) }}</td>
         </tr>
         <tr>
             <td>Cashless</td>
-            <td class="text-right">₱ {{ number_format($inv_group->grand_total_amount, 2) }}</td>
+            <td class="text-right">&#8369; {{ number_format($inv_group->grand_total_amount, 2) }}</td>
         </tr>
     </table>
 
