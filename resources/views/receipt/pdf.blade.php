@@ -70,10 +70,10 @@
     <hr>
 
     <!-- Customer info -->
-    <div class="customer-info">
+    <!-- <div class="customer-info">
         <p>{{ $customer_name ?? 'Customer' }}</p>
         <p>{{ $customer_address ?? '' }}</p>
-    </div>
+    </div> -->
 
     <hr>
 
@@ -118,7 +118,7 @@
     <div class="footer">
         <p>Thank you for your order!</p>
         <p>"THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX."</p>
-        <p>Calva Pharma | Tax ID: 409-604-053-00000 | bcdotg@gmail.com</p>
+        <!-- <p>Calva Pharma | Tax ID: 409-604-053-00000 | bcdotg@gmail.com</p> -->
     </div>
 </div>
 </body>
