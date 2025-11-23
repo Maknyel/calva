@@ -63,8 +63,10 @@
             <tr v-if="item.showDetails" :key="item.id + '-details'">
               <td colspan="8" class="border-t border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
                 <p class="mb-1"><strong>Description:</strong> {{ item.description }}</p>
-                <p class="mb-1"><strong>Cost Price:</strong> {{ item.current_cost_price }}</p>
-                <p class="mb-1"><strong>Sale Price:</strong> {{ item.current_sale_price }}</p>
+                <template v-if="isAdmin">
+                  <p class="mb-1"><strong>Cost Price:</strong> ₱ {{ item.current_cost_price }}</p>
+                </template>
+                <p class="mb-1"><strong>Sale Price:</strong> ₱ {{ item.current_sale_price }}</p>
                 <p><strong>Reordering Level:</strong> {{ item.reordering_level }}</p>
               </td>
             </tr>
@@ -189,6 +191,8 @@ export default {
   name: 'Inventory',
   data() {
     return {
+      isAdmin: false,
+      
       searchQuery: '',
       currentPage: 1,
       perPage: 6,
@@ -215,6 +219,7 @@ export default {
     };
   },
   mounted() {
+    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
     this.fetchInventoryItems();
     this.fetchRelations();
   },

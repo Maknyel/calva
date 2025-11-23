@@ -1,8 +1,18 @@
 <template>
   <header class="bg-purple-700 text-white shadow flex items-center justify-between px-6 py-3">
-    <!-- Logo -->
-    <div class="text-xl font-bold text-purple-500">Calva Pharma</div>
+    <div class="flex items-center gap-1">
+      <!-- Sidebar Toggle Button -->
+      <button @click="callParent" class="mr-4 p-2 rounded bg-purple-600 hover:bg-purple-500 focus:outline-none">
+        <!-- You can use an icon or text -->
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
 
+      <!-- Logo -->
+      <div class="text-xl font-bold text-purple-500">Calva Pharma</div>
+    </div>
     <!-- User Dropdown -->
     <div class="relative" v-if="userData">
       <button @click="toggleDropdown" class="flex items-center space-x-2 focus:outline-none">
@@ -15,13 +25,11 @@
 
       <!-- Dropdown menu -->
       <transition name="fade">
-        <div
-          v-if="dropdownOpen"
-          class="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded shadow-lg z-50"
-        >
+        <div v-if="dropdownOpen" class="absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded shadow-lg z-50">
           <button @click="openProfileModal" class="w-full text-left px-4 py-2 hover:bg-gray-100">Profile</button>
-          <button @click="openPasswordModal" class="w-full text-left px-4 py-2 hover:bg-gray-100">Change Password</button>
-          <hr class="my-1"/>
+          <button @click="openPasswordModal" class="w-full text-left px-4 py-2 hover:bg-gray-100">Change
+            Password</button>
+          <hr class="my-1" />
           <button @click="logout" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">Logout</button>
         </div>
       </transition>
@@ -36,24 +44,26 @@
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-gray-700 mb-1">First Name</label>
-              <input v-model="profile.fname" class="w-full border rounded px-2 py-1 text-black"/>
+              <input v-model="profile.fname" class="w-full border rounded px-2 py-1 text-black" />
             </div>
             <div>
               <label class="block text-gray-700 mb-1">Last Name</label>
-              <input v-model="profile.lname" class="w-full border rounded px-2 py-1 text-black"/>
+              <input v-model="profile.lname" class="w-full border rounded px-2 py-1 text-black" />
             </div>
           </div>
           <div class="mb-4">
             <label class="block text-gray-700 mb-1">Email</label>
-            <input v-model="profile.email" type="email" class="w-full border rounded px-2 py-1 text-black"/>
+            <input v-model="profile.email" type="email" class="w-full border rounded px-2 py-1 text-black" />
           </div>
           <div class="mb-4">
             <label class="block text-gray-700 mb-1">Contact Number</label>
-            <input v-model="profile.contact_number" class="w-full border rounded px-2 py-1 text-black"/>
+            <input v-model="profile.contact_number" class="w-full border rounded px-2 py-1 text-black" />
           </div>
           <div class="flex justify-end space-x-2 mb-2">
-            <button type="button" @click="showProfileModal=false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Close</button>
-            <button type="submit" class="px-4 py-2 bg-purple-700 text-white rounded hover:bg-purple-800">Save Info</button>
+            <button type="button" @click="showProfileModal = false"
+              class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Close</button>
+            <button type="submit" class="px-4 py-2 bg-purple-700 text-white rounded hover:bg-purple-800">Save
+              Info</button>
           </div>
         </form>
       </div>
@@ -66,15 +76,18 @@
         <form @submit.prevent="changePassword">
           <div class="mb-4">
             <label class="block text-gray-700 mb-1">New Password</label>
-            <input type="password" v-model="profile.password" class="w-full border rounded px-2 py-1 text-black"/>
+            <input type="password" v-model="profile.password" class="w-full border rounded px-2 py-1 text-black" />
           </div>
           <div class="mb-4">
             <label class="block text-gray-700 mb-1">Confirm Password</label>
-            <input type="password" v-model="profile.password_confirmation" class="w-full border rounded px-2 py-1 text-black"/>
+            <input type="password" v-model="profile.password_confirmation"
+              class="w-full border rounded px-2 py-1 text-black" />
           </div>
           <div class="flex justify-end space-x-2">
-            <button type="button" @click="showPasswordModal=false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Close</button>
-            <button type="submit" class="px-4 py-2 bg-purple-700 text-white rounded hover:bg-purple-800">Change Password</button>
+            <button type="button" @click="showPasswordModal = false"
+              class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Close</button>
+            <button type="submit" class="px-4 py-2 bg-purple-700 text-white rounded hover:bg-purple-800">Change
+              Password</button>
           </div>
         </form>
       </div>
@@ -117,6 +130,9 @@ export default {
     this.fetchUser();
   },
   methods: {
+    callParent() {
+      this.$emit('callParentFunction');
+    },
     toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
     openProfileModal() { this.showProfileModal = true; this.dropdownOpen = false; },
     openPasswordModal() { this.showPasswordModal = true; this.dropdownOpen = false; },
@@ -185,6 +201,13 @@ export default {
 </script>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
-.fade-enter, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>

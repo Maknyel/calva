@@ -33,6 +33,7 @@
           <th class="px-4 py-2">Distributor</th>
           <th class="px-4 py-2">Supplier</th>
           <th class="px-4 py-2">In/Out</th>
+          <th class="px-4 py-2">Price</th>
           <th class="px-4 py-2">Quantity</th>
           <th class="px-4 py-2">Total</th>
           <th class="px-4 py-2">Group</th>
@@ -47,6 +48,7 @@
           <td class="px-4 py-2">{{ item.distributor ? item.distributor.name : '-' }}</td>
           <td class="px-4 py-2">{{ item.supplier ? item.supplier.name : '-' }}</td>
           <td class="px-4 py-2">{{ item.invinorout }}</td>
+          <td class="px-4 py-2">{{ item.cost_price_sold }}</td>
           <td class="px-4 py-2">{{ item.quantity_sold }}</td>
           <td class="px-4 py-2">{{ item.total }}</td>
           <td class="px-4 py-2">{{ item.inventory_group ? item.inventory_group.id : '-' }}</td>
@@ -78,6 +80,7 @@ import axios from "axios";
 export default {
   data() {
     return {
+      isAdmin: false,
       history: { data: [], current_page: 1, last_page: 1 },
       filters: {
         search: "",
@@ -110,6 +113,7 @@ export default {
     },
   },
   mounted() {
+    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
     this.fetchFilters();
     this.fetchHistory();
   },

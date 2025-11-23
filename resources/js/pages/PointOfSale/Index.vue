@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-gray-100">
+  <div class="flex flex-col md:flex-col lg:flex-row xl:flex-row h-screen bg-gray-100">
     <!-- Products Panel -->
     <div class="flex-1 p-6 overflow-y-auto">
       <!-- Search -->
@@ -13,7 +13,7 @@
       </div>
 
       <!-- Products Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
@@ -55,7 +55,7 @@
     </div>
 
     <!-- Cart Sidebar -->
-    <div class="w-96 bg-white p-6 shadow-lg flex flex-col">
+    <div class="w-full md:w-full lg:w-96 xl:w-96 bg-white p-6 shadow-lg flex flex-col">
       <h2 class="text-xl font-bold mb-4">POS Cart</h2>
       <div class="flex-1 overflow-y-auto">
         <div v-if="cart.length === 0" class="text-gray-500">No items added yet</div>

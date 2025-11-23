@@ -29,22 +29,28 @@ export default {
       links: [
         { name: 'Dashboard', path: '/vue/dashboard' },
         { name: 'Inventory', path: '/vue/inventory' },
+        { name: 'Point Of Sale', path: '/vue/point-of-sale' },
+        { name: 'Inventory History', path: '/vue/inventory-history' },
+        { name: 'Distributor', path: '/vue/distributor' },
+        { name: 'Inventory Type', path: '/vue/inventory-type' },
+        { name: 'Supplier', path: '/vue/supplier' }
+      ],
+    };
+  },
+  mounted() {
+    if(this.user.role.name == 'admin'){
+      this.links = 
+      [
+        { name: 'Dashboard', path: '/vue/dashboard' },
+        { name: 'Inventory', path: '/vue/inventory' },
         { name: 'Inventory In', path: '/vue/inventory-in' },
         { name: 'Point Of Sale', path: '/vue/point-of-sale' },
         { name: 'Inventory History', path: '/vue/inventory-history' },
         { name: 'Distributor', path: '/vue/distributor' },
         { name: 'Inventory Type', path: '/vue/inventory-type' },
         { name: 'Supplier', path: '/vue/supplier' },
-        // { name: 'Users', path: '/vue/users' },
-      ],
-    };
-  },
-  mounted() {
-    if(this.user.role.name == 'admin'){
-      this.links.push({
-        name: 'Users',
-        path: '/vue/users'
-      });
+        { name: 'Users', path: '/vue/users' },
+      ];
 
     }
   },

@@ -4,12 +4,12 @@
     <div v-if="user" class="flex flex-1 flex-row h-full overflow-hidden">
       <!-- Sidebar -->
        
-      <Sidebar v-if="user" :user="user" class="w-64 bg-white shadow-md" />
+      <Sidebar v-if="user" :user="user" class="w-64 bg-white shadow-md " :class="activatedSidebar?'':'hidden'" />
 
       <!-- Main content -->
       <div class="flex-1 flex flex-col h-full overflow-hidden">
         <!-- Header -->
-        <Header v-if="user" :user="user" class="bg-white shadow px-4 py-3" />
+        <Header @callParentFunction="activatedSidebarFunction()" v-if="user" :user="user" class="bg-white shadow px-4 py-3" />
 
         <!-- Page content -->
         <main class="flex-1 p-6 overflow-auto">
@@ -34,6 +34,7 @@ export default {
   data() {
     return {
       user: null,
+      activatedSidebar: true
     }
   },
   components: { Header, Sidebar },
@@ -47,6 +48,9 @@ export default {
     this.fetchUser();
   },
   methods: {
+    activatedSidebarFunction(){
+      this.activatedSidebar = !this.activatedSidebar;
+    },
     async fetchUser() {
       const token = sessionStorage.getItem('token');
       if (!token) {
@@ -61,7 +65,11 @@ export default {
         const res = await axios.get('/api/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        
+        sessionStorage.setItem('currentUserRole', res.data.role.name);
         this.user = res.data;
+        
+        
       } catch (err) {
         console.error(err);
         sessionStorage.removeItem('token');
