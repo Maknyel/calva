@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\{
+    ReceiptController
+};
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -17,9 +19,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/receipt/{id}', [ReceiptController::class, 'printPdf'])->name('receipt.show');
+
+
 Route::get('/vue', function () {
     return view('vue');
 });
+
+
 
 Route::get('/vue/{any?}', function () {
     return view('vue');

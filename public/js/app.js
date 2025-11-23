@@ -27710,7 +27710,7 @@ var render = function () {
             ]),
             _vm._v(" "),
             _c("td", { staticClass: "px-4 py-2" }, [
-              _vm._v(_vm._s(item.cost_price_sold)),
+              _vm._v("₱ " + _vm._s(item.cost_price_sold)),
             ]),
             _vm._v(" "),
             _c("td", { staticClass: "px-4 py-2" }, [
@@ -27718,7 +27718,7 @@ var render = function () {
             ]),
             _vm._v(" "),
             _c("td", { staticClass: "px-4 py-2" }, [
-              _vm._v(_vm._s(item.total)),
+              _vm._v("₱ " + _vm._s(item.total)),
             ]),
             _vm._v(" "),
             _c("td", { staticClass: "px-4 py-2" }, [
