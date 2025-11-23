@@ -67,7 +67,7 @@
         <p>Calva Pharma</p>
     </div>
 
-    <hr>
+    <!-- <hr> -->
 
     <!-- Customer info -->
     <!-- <div class="customer-info">
