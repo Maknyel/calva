@@ -34,12 +34,12 @@
             <button @click="increaseQty(product)" class="px-2 py-1 bg-gray-200 rounded">+</button>
           </div>
 
-          <!-- Cost Price Input -->
+          <!-- Sale Price Input -->
           <input
             readonly
             type="number"
-            v-model.number="product.cost_price"
-            placeholder="Cost Price"
+            v-model.number="product.sale_price"
+            placeholder="Sale Price"
             class="border rounded px-2 py-1 mb-2 w-full"
             min="0"
           />
@@ -67,8 +67,8 @@
           <div>
             <h3 class="font-semibold">{{ item.name }}</h3>
             <p class="text-gray-500">Qty: {{ item.quantity }}</p>
-            <p class="text-gray-500 text-sm">Cost Price: {{ item.cost_price }}</p>
-            <!-- Sale Price is hidden -->
+            <p class="text-gray-500 text-sm">Selling Price: {{ item.sale_price }}</p>
+            <!-- Cost Price is hidden -->
           </div>
           <button
             @click="removeFromCart(index)"
@@ -131,7 +131,7 @@ export default {
       );
     },
     total() {
-      return this.cart.reduce((sum, item) => sum + item.cost_price * item.quantity, 0);
+      return this.cart.reduce((sum, item) => sum + item.sale_price * item.quantity, 0);
     },
     discountedPrice() {
       return this.total * (this.discountPercent / 100);

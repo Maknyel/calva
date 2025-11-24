@@ -7532,7 +7532,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     },
     total: function total() {
       return this.cart.reduce(function (sum, item) {
-        return sum + item.cost_price * item.quantity;
+        return sum + item.sale_price * item.quantity;
       }, 0);
     },
     discountedPrice: function discountedPrice() {
@@ -28728,8 +28728,8 @@ var render = function () {
                     {
                       name: "model",
                       rawName: "v-model.number",
-                      value: product.cost_price,
-                      expression: "product.cost_price",
+                      value: product.sale_price,
+                      expression: "product.sale_price",
                       modifiers: { number: true },
                     },
                   ],
@@ -28737,10 +28737,10 @@ var render = function () {
                   attrs: {
                     readonly: "",
                     type: "number",
-                    placeholder: "Cost Price",
+                    placeholder: "Sale Price",
                     min: "0",
                   },
-                  domProps: { value: product.cost_price },
+                  domProps: { value: product.sale_price },
                   on: {
                     input: function ($event) {
                       if ($event.target.composing) {
@@ -28748,7 +28748,7 @@ var render = function () {
                       }
                       _vm.$set(
                         product,
-                        "cost_price",
+                        "sale_price",
                         _vm._n($event.target.value)
                       )
                     },
@@ -28818,7 +28818,7 @@ var render = function () {
                       ]),
                       _vm._v(" "),
                       _c("p", { staticClass: "text-gray-500 text-sm" }, [
-                        _vm._v("Cost Price: " + _vm._s(item.cost_price)),
+                        _vm._v("Selling Price: " + _vm._s(item.sale_price)),
                       ]),
                     ]),
                     _vm._v(" "),
