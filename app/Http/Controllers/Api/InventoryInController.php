@@ -77,7 +77,7 @@ class InventoryInController extends Controller
 
             // Calculate totals
             $totalAmount = collect($validated['items'])->sum(function ($item) {
-                return $item['cost_price'] * $item['quantity'];
+                return $item['sale_price'] * $item['quantity'];
             });
 
             $discountPercentage = $validated['discount_percent'] ?? 0;
@@ -118,7 +118,7 @@ class InventoryInController extends Controller
                     'quantity_sold' => $item['quantity'],
                     'cost_price_sold' => $item['cost_price'],
                     'sale_price_cost' => $item['sale_price'],
-                    'total' => $item['quantity'] * $item['cost_price'],
+                    'total' => $item['quantity'] * $item['sale_price'],
                     'inventory_group_id' => $historyGroup->id,
                     'date_time_adjustment' => now(),
                 ]);
