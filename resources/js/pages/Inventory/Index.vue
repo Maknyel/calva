@@ -64,9 +64,9 @@
               <td colspan="8" class="border-t border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
                 <p class="mb-1"><strong>Description:</strong> {{ item.description }}</p>
                 <template v-if="isAdmin">
-                  <p class="mb-1"><strong>Cost Price:</strong> ₱ {{ item.current_cost_price }}</p>
+                  <p class="mb-1"><strong>Cost Price:</strong> &#8369; {{ item.current_cost_price }}</p>
                 </template>
-                <p class="mb-1"><strong>Sale Price:</strong> ₱ {{ item.current_sale_price }}</p>
+                <p class="mb-1"><strong>Sale Price:</strong> &#8369; {{ item.current_sale_price }}</p>
                 <p><strong>Reordering Level:</strong> {{ item.reordering_level }}</p>
               </td>
             </tr>

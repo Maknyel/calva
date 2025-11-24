@@ -33,6 +33,9 @@
           <th class="px-4 py-2">Distributor</th>
           <th class="px-4 py-2">Supplier</th>
           <th class="px-4 py-2">In/Out</th>
+          
+          <th v-if="isAdmin" class="px-4 py-2">Cost</th>
+          
           <th class="px-4 py-2">Price</th>
           <th class="px-4 py-2">Quantity</th>
           <th class="px-4 py-2">Total</th>
@@ -48,9 +51,11 @@
           <td class="px-4 py-2">{{ item.distributor ? item.distributor.name : '-' }}</td>
           <td class="px-4 py-2">{{ item.supplier ? item.supplier.name : '-' }}</td>
           <td class="px-4 py-2">{{ item.invinorout }}</td>
-          <td class="px-4 py-2">₱ {{ item.cost_price_sold }}</td>
+          
+          <td v-if="isAdmin" class="px-4 py-2">&#8369; {{ item.sale_price_cost }}</td>
+          <td class="px-4 py-2">&#8369; {{ item.cost_price_sold }}</td>
           <td class="px-4 py-2">{{ item.quantity_sold }}</td>
-          <td class="px-4 py-2">₱ {{ item.total }}</td>
+          <td class="px-4 py-2">&#8369; {{ item.total }}</td>
           <td class="px-4 py-2">{{ item.inventory_group ? item.inventory_group.id : '-' }}</td>
           <td class="px-4 py-2">{{ new Date(item.date_time_adjustment).toLocaleString() }}</td>
         </tr>

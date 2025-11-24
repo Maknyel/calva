@@ -6603,6 +6603,11 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
 
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
@@ -27679,7 +27684,35 @@ var render = function () {
     ]),
     _vm._v(" "),
     _c("table", { staticClass: "w-full border" }, [
-      _vm._m(0),
+      _c("thead", [
+        _c("tr", { staticClass: "bg-gray-200" }, [
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Name")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Description")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Type")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Distributor")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Supplier")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("In/Out")]),
+          _vm._v(" "),
+          _vm.isAdmin
+            ? _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Cost")])
+            : _vm._e(),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Price")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Quantity")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Total")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Group")]),
+          _vm._v(" "),
+          _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Date")]),
+        ]),
+      ]),
       _vm._v(" "),
       _c(
         "tbody",
@@ -27708,6 +27741,12 @@ var render = function () {
             _c("td", { staticClass: "px-4 py-2" }, [
               _vm._v(_vm._s(item.invinorout)),
             ]),
+            _vm._v(" "),
+            _vm.isAdmin
+              ? _c("td", { staticClass: "px-4 py-2" }, [
+                  _vm._v("₱ " + _vm._s(item.sale_price_cost)),
+                ])
+              : _vm._e(),
             _vm._v(" "),
             _c("td", { staticClass: "px-4 py-2" }, [
               _vm._v("₱ " + _vm._s(item.cost_price_sold)),
@@ -27777,38 +27816,7 @@ var render = function () {
     ]),
   ])
 }
-var staticRenderFns = [
-  function () {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("thead", [
-      _c("tr", { staticClass: "bg-gray-200" }, [
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Name")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Description")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Type")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Distributor")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Supplier")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("In/Out")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Price")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Quantity")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Total")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Group")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-2" }, [_vm._v("Date")]),
-      ]),
-    ])
-  },
-]
+var staticRenderFns = []
 render._withStripped = true
 
 
