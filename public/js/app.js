@@ -5210,6 +5210,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       dropdownOpen: false,
       showProfileModal: false,
       showPasswordModal: false,
+      companyName: 'Calva Pharma',
+      // Default fallback
       profile: {
         fname: '',
         lname: '',
@@ -5228,6 +5230,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
   },
   mounted: function mounted() {
     this.fetchUser();
+    this.fetchCompanySettings();
   },
   methods: {
     callParent: function callParent() {
@@ -5261,121 +5264,154 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
         }, _callee);
       }))();
     },
-    updateProfileInfo: function updateProfileInfo() {
+    fetchCompanySettings: function fetchCompanySettings() {
       var _this2 = this;
       return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-        var token, _t;
+        var token, response, _t;
         return _regenerator().w(function (_context2) {
           while (1) switch (_context2.p = _context2.n) {
             case 0:
               token = sessionStorage.getItem('token');
               _context2.p = 1;
               _context2.n = 2;
-              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].put('/api/profile', {
-                fname: _this2.profile.fname,
-                lname: _this2.profile.lname,
-                email: _this2.profile.email,
-                contact_number: _this2.profile.contact_number
-              }, {
+              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].get('/api/company-settings', {
                 headers: {
                   Authorization: "Bearer ".concat(token)
                 }
               });
             case 2:
-              _this2.userData = _objectSpread(_objectSpread({}, _this2.userData), _this2.profile);
-              _this2.$toast.success('Profile info updated successfully!');
-              _this2.$root.fetchUser();
-              _this2.showProfileModal = false;
+              response = _context2.v;
+              if (response.data && response.data.data.company_name) {
+                _this2.companyName = response.data.data.company_name;
+              }
               _context2.n = 4;
               break;
             case 3:
               _context2.p = 3;
               _t = _context2.v;
-              console.error(_t);
-              _this2.$toast.error('Failed to update profile info.');
+              console.error('Failed to fetch company settings:', _t);
+              // Keep default fallback value
             case 4:
               return _context2.a(2);
           }
         }, _callee2, null, [[1, 3]]);
       }))();
     },
-    changePassword: function changePassword() {
+    updateProfileInfo: function updateProfileInfo() {
       var _this3 = this;
       return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
         var token, _t2;
         return _regenerator().w(function (_context3) {
           while (1) switch (_context3.p = _context3.n) {
             case 0:
-              if (!(!_this3.profile.password || _this3.profile.password !== _this3.profile.password_confirmation)) {
-                _context3.n = 1;
+              token = sessionStorage.getItem('token');
+              _context3.p = 1;
+              _context3.n = 2;
+              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].put('/api/profile', {
+                fname: _this3.profile.fname,
+                lname: _this3.profile.lname,
+                email: _this3.profile.email,
+                contact_number: _this3.profile.contact_number
+              }, {
+                headers: {
+                  Authorization: "Bearer ".concat(token)
+                }
+              });
+            case 2:
+              _this3.userData = _objectSpread(_objectSpread({}, _this3.userData), _this3.profile);
+              _this3.$toast.success('Profile info updated successfully!');
+              _this3.$root.fetchUser();
+              _this3.showProfileModal = false;
+              _context3.n = 4;
+              break;
+            case 3:
+              _context3.p = 3;
+              _t2 = _context3.v;
+              console.error(_t2);
+              _this3.$toast.error('Failed to update profile info.');
+            case 4:
+              return _context3.a(2);
+          }
+        }, _callee3, null, [[1, 3]]);
+      }))();
+    },
+    changePassword: function changePassword() {
+      var _this4 = this;
+      return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+        var token, _t3;
+        return _regenerator().w(function (_context4) {
+          while (1) switch (_context4.p = _context4.n) {
+            case 0:
+              if (!(!_this4.profile.password || _this4.profile.password !== _this4.profile.password_confirmation)) {
+                _context4.n = 1;
                 break;
               }
-              _this3.$toast.warning('Passwords do not match.');
-              return _context3.a(2);
+              _this4.$toast.warning('Passwords do not match.');
+              return _context4.a(2);
             case 1:
               token = sessionStorage.getItem('token');
-              _context3.p = 2;
-              _context3.n = 3;
+              _context4.p = 2;
+              _context4.n = 3;
               return axios__WEBPACK_IMPORTED_MODULE_0__["default"].put('/api/profile', {
-                password: _this3.profile.password,
-                password_confirmation: _this3.profile.password_confirmation
+                password: _this4.profile.password,
+                password_confirmation: _this4.profile.password_confirmation
               }, {
                 headers: {
                   Authorization: "Bearer ".concat(token)
                 }
               });
             case 3:
-              _this3.$toast.success('Password changed successfully!');
-              _this3.profile.password = '';
-              _this3.profile.password_confirmation = '';
-              _this3.showPasswordModal = false;
-              _context3.n = 5;
+              _this4.$toast.success('Password changed successfully!');
+              _this4.profile.password = '';
+              _this4.profile.password_confirmation = '';
+              _this4.showPasswordModal = false;
+              _context4.n = 5;
               break;
             case 4:
-              _context3.p = 4;
-              _t2 = _context3.v;
-              console.error(_t2);
-              _this3.$toast.error('Failed to change password.');
+              _context4.p = 4;
+              _t3 = _context4.v;
+              console.error(_t3);
+              _this4.$toast.error('Failed to change password.');
             case 5:
-              return _context3.a(2);
+              return _context4.a(2);
           }
-        }, _callee3, null, [[2, 4]]);
+        }, _callee4, null, [[2, 4]]);
       }))();
     },
     logout: function logout() {
-      return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-        var token, _t3;
-        return _regenerator().w(function (_context4) {
-          while (1) switch (_context4.p = _context4.n) {
+      return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+        var token, _t4;
+        return _regenerator().w(function (_context5) {
+          while (1) switch (_context5.p = _context5.n) {
             case 0:
               token = sessionStorage.getItem('token');
-              _context4.p = 1;
+              _context5.p = 1;
               if (!token) {
-                _context4.n = 2;
+                _context5.n = 2;
                 break;
               }
-              _context4.n = 2;
+              _context5.n = 2;
               return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/logout', {}, {
                 headers: {
                   Authorization: "Bearer ".concat(token)
                 }
               });
             case 2:
-              _context4.n = 4;
+              _context5.n = 4;
               break;
             case 3:
-              _context4.p = 3;
-              _t3 = _context4.v;
-              console.error(_t3);
+              _context5.p = 3;
+              _t4 = _context5.v;
+              console.error(_t4);
             case 4:
-              _context4.p = 4;
+              _context5.p = 4;
               sessionStorage.removeItem('token');
               location.reload();
-              return _context4.f(4);
+              return _context5.f(4);
             case 5:
-              return _context4.a(2);
+              return _context5.a(2);
           }
-        }, _callee4, null, [[1, 3, 4, 5]]);
+        }, _callee5, null, [[1, 3, 4, 5]]);
       }))();
     }
   }
@@ -5854,7 +5890,6 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-//
 //
 //
 //
@@ -24624,7 +24659,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* Optional custom scrollbar for main content */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* Optional custom scrollbar for main content */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -26265,7 +26300,7 @@ var render = function () {
         ),
         _vm._v(" "),
         _c("div", { staticClass: "text-xl font-bold text-purple-500" }, [
-          _vm._v("Calva Pharma"),
+          _vm._v(_vm._s(_vm.companyName)),
         ]),
       ]),
       _vm._v(" "),
@@ -27176,10 +27211,6 @@ var render = function () {
       [
         _c("h1", { staticClass: "text-3xl font-bold text-purple-700" }, [
           _vm._v("Dashboard"),
-        ]),
-        _vm._v(" "),
-        _c("p", { staticClass: "text-gray-600" }, [
-          _vm._v("Welcome to the Calva Inventory Dashboard."),
         ]),
         _vm._v(" "),
         _c(

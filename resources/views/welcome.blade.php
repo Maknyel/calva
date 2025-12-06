@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <title>CALVA Pharmacy</title>
+    <title>{{ company_name() }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -84,10 +84,10 @@
         <div class="max-w-7xl mx-auto flex justify-between items-center p-4">
             <!-- Logo + Brand -->
             <a href="#home" class="flex items-center space-x-3">
-                <img src="{{ asset('assets/images/calvalogo.jpg') }}" alt="CALVA Pharmacy Logo"
+                <img src="{{ company_logo(true) }}" alt="{{ company_name() }} Logo"
                     class="border-4 border-purple-600 rounded-full w-10 h-10 object-contain">
                 <h1 class="text-2xl font-extrabold" style="color: var(--calva-purple);">
-                    CALVA Pharmacy
+                    {{ company_name() }}
                 </h1>
             </a>
 
@@ -133,7 +133,7 @@
     <section id="home"
         class="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-24">
         <h2 class="text-5xl md:text-6xl font-extrabold mb-4" style="color: var(--calva-purple);">
-            CALVA Pharmacy
+            {{ company_name() }}
         </h2>
         <p class="text-xl md:text-2xl mb-8 font-semibold text-purple-700">
             Kaagapay sa Kalusugan
@@ -148,7 +148,7 @@
     <section id="about" class="py-20 text-center">
         <h3 class="text-4xl font-bold mb-6" style="color: var(--calva-purple);">About Us</h3>
         <p class="max-w-3xl mx-auto text-lg text-gray-700">
-            CALVA Pharmacy is your trusted partner in health, providing quality medicines and compassionate care.
+            {{ company_name() }} is your trusted partner in health, providing quality medicines and compassionate care.
             We are committed to supporting your wellness journey every step of the way.
         </p>
     </section>
@@ -213,7 +213,7 @@
 
     <!-- Footer -->
     <footer class="text-white text-center py-6 mt-12">
-        &copy; <span id="current-year"></span> CALVA Pharmacy. All rights reserved.
+        &copy; <span id="current-year"></span> {{ company_name() }}. All rights reserved.
     </footer>
 
     <!-- Scripts -->

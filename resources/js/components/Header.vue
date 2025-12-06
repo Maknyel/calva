@@ -11,7 +11,7 @@
       </button>
 
       <!-- Logo -->
-      <div class="text-xl font-bold text-purple-500">Calva Pharma</div>
+      <div class="text-xl font-bold text-purple-500">{{ companyName }}</div>
     </div>
     <!-- User Dropdown -->
     <div class="relative" v-if="userData">
@@ -110,6 +110,7 @@ export default {
       dropdownOpen: false,
       showProfileModal: false,
       showPasswordModal: false,
+      companyName: 'Calva Pharma', // Default fallback
       profile: {
         fname: '',
         lname: '',
@@ -128,6 +129,7 @@ export default {
   },
   mounted() {
     this.fetchUser();
+    this.fetchCompanySettings();
   },
   methods: {
     callParent() {
@@ -140,6 +142,22 @@ export default {
     async fetchUser() {
       this.profile = { ...this.user, password: '', password_confirmation: '' };
       this.userData = this.user;
+    },
+
+    async fetchCompanySettings() {
+      const token = sessionStorage.getItem('token');
+      try {
+        const response = await axios.get('/api/company-settings', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data && response.data.data.company_name) {
+          
+          this.companyName = response.data.data.company_name;
+        }
+      } catch (err) {
+        console.error('Failed to fetch company settings:', err);
+        // Keep default fallback value
+      }
     },
 
     async updateProfileInfo() {

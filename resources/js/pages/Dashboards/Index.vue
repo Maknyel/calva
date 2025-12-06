@@ -3,7 +3,6 @@
     <div class="flex-1 overflow-y-auto p-6 space-y-6">
       <!-- Page Title -->
       <h1 class="text-3xl font-bold text-purple-700">Dashboard</h1>
-      <p class="text-gray-600">Welcome to the Calva Inventory Dashboard.</p>
 
       <!-- Stats / Monitoring -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
