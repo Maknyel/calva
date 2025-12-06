@@ -13,7 +13,8 @@ use App\Http\Controllers\Api\{
     InventoryHistoryController,
     PosSaleController,
     CompanySettingController,
-    InventoryGroupController
+    InventoryGroupController,
+    MonitoringController
 };
 
 /*
@@ -112,5 +113,7 @@ Route::put('/company-settings', [CompanySettingController::class, 'update']);
 // Inventory Groups (Sales History)
 Route::get('/inventory-groups', [InventoryGroupController::class, 'index']);
 
+// Monitoring
+Route::get('/monitoring', [MonitoringController::class, 'getMonitoringData']);
 
 

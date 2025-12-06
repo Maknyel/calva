@@ -16,6 +16,7 @@ import InventoryType from '@pages/InventoryType/Index.vue';
 import Supplier from '@pages/Supplier/Index.vue';
 import Users from '@pages/Users/Index.vue';
 import CompanySettings from '@pages/CompanySettings/Index.vue';
+import Monitoring from '@pages/Monitoring/Index.vue';
 
 const routes = [
   { path: '/vue/login', name: 'Login', component: Login },
@@ -29,7 +30,8 @@ const routes = [
   { path: '/vue/inventory-type', name: 'InventoryType', component: InventoryType },
   { path: '/vue/supplier', name: 'Supplier', component: Supplier },
   { path: '/vue/users', name: 'Users', component: Users },
-  { path: '/vue/company-settings', name: 'CompanySettings', component: CompanySettings }
+  { path: '/vue/company-settings', name: 'CompanySettings', component: CompanySettings },
+  { path: '/vue/monitoring', name: 'Monitoring', component: Monitoring }
 ];
 
 export default new VueRouter({
