@@ -153,4 +153,88 @@ class MonitoringController extends Controller
             ],
         ]);
     }
+
+    public function printMonitoringReport(Request $request)
+    {
+        $request->validate([
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+        ]);
+
+        $dateFrom = $request->date_from;
+        $dateTo = $request->date_to;
+
+        // Get orders by customer with individual orders
+        $ordersByCustomer = InventoryHistory::with('inventoryGroup')
+            ->whereBetween('date_time_adjustment', [$dateFrom, $dateTo])
+            ->whereNotNull('inventory_group_id')
+            ->where('invinorout', 'out')
+            ->select('inventory_group_id')
+            ->selectRaw('SUM(cost_price_sold) as total_cost')
+            ->selectRaw('SUM(sale_price_cost) as total_sales')
+            ->selectRaw('SUM(quantity_sold) as total_quantity')
+            ->selectRaw('MIN(date_time_adjustment) as order_date')
+            ->groupBy('inventory_group_id')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->inventoryGroup->customer_name ?? 'Walk-in';
+            })
+            ->map(function ($customerOrders, $customerName) {
+                $totalCost = $customerOrders->sum('total_cost');
+                $totalSales = $customerOrders->sum('total_sales');
+                $totalQuantity = $customerOrders->sum('total_quantity');
+                $orderCount = $customerOrders->count();
+
+                $firstOrder = $customerOrders->first();
+                $group = $firstOrder->inventoryGroup;
+
+                $individualOrders = $customerOrders->map(function ($order) {
+                    $group = $order->inventoryGroup;
+                    return [
+                        'order_id' => $order->inventory_group_id,
+                        'order_date' => $order->order_date,
+                        'payment_method' => $group->payment_method ?? 'N/A',
+                        'total_quantity' => $order->total_quantity,
+                        'total_cost' => round($order->total_cost, 2),
+                        'total_sales' => round($order->total_sales, 2),
+                        'profit' => round($order->total_sales - $order->total_cost, 2),
+                    ];
+                })->values();
+
+                return [
+                    'customer_name' => $customerName,
+                    'customer_phone' => $group->customer_phone ?? 'N/A',
+                    'customer_address' => $group->customer_address ?? 'N/A',
+                    'order_count' => $orderCount,
+                    'total_quantity' => $totalQuantity,
+                    'total_cost' => round($totalCost, 2),
+                    'total_sales' => round($totalSales, 2),
+                    'profit' => round($totalSales - $totalCost, 2),
+                    'orders' => $individualOrders,
+                ];
+            })
+            ->sortByDesc('total_sales');
+
+        // Calculate totals
+        $totalCost = $ordersByCustomer->sum('total_cost');
+        $totalSales = $ordersByCustomer->sum('total_sales');
+        $totalProfit = $totalSales - $totalCost;
+        $totalOrders = $ordersByCustomer->sum('order_count');
+        $totalQuantity = $ordersByCustomer->sum('total_quantity');
+
+        $summary = [
+            'total_kita' => round($totalCost, 2),
+            'total_benta' => round($totalSales, 2),
+            'total_profit' => round($totalProfit, 2),
+            'total_orders' => $totalOrders,
+            'total_quantity' => $totalQuantity,
+        ];
+
+        return view('monitoring.print', [
+            'ordersByCustomer' => $ordersByCustomer,
+            'summary' => $summary,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+        ]);
+    }
 }

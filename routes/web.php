@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     ReceiptController
 };
+use App\Http\Controllers\Api\MonitoringController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -21,6 +22,7 @@ Route::get('/', function () {
 
 Route::get('/receipt/{id}', [ReceiptController::class, 'printPdf'])->name('receipt.show');
 
+Route::get('/monitoring/print', [MonitoringController::class, 'printMonitoringReport'])->name('monitoring.print');
 
 Route::get('/vue', function () {
     return view('vue');

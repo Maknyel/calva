@@ -58,7 +58,15 @@
 
       <!-- Orders by Customer Table -->
       <div v-if="ordersByCustomer.length > 0" class="bg-white shadow rounded p-6">
-        <h2 class="text-xl font-semibold text-purple-700 mb-4">Orders by Customer</h2>
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xl font-semibold text-purple-700 mb-4">Orders by Customer</h2>
+          <button
+            @click="printCustomerOrders"
+            class="w-[200px] bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Print Report
+          </button>
+        </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead class="bg-purple-100 text-purple-700">
@@ -337,6 +345,16 @@ export default {
       const minutes = String(date.getMinutes()).padStart(2, '0');
 
       return `${year}-${month}-${day}T${hours}:${minutes}`;
+    },
+    printCustomerOrders() {
+      if (!this.dateFrom || !this.dateTo) {
+        alert('Please select a date range first');
+        return;
+      }
+
+      // Open the print route in a new window
+      const printUrl = `/monitoring/print?date_from=${encodeURIComponent(this.dateFrom)}&date_to=${encodeURIComponent(this.dateTo)}`;
+      window.open(printUrl, '_blank');
     },
   },
   mounted() {
