@@ -71,6 +71,11 @@ class InventoryInController extends Controller
             'items.*.sale_price' => 'required|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'dr_number' => 'nullable|string',
+            'customer_name' => 'nullable|string|max:255',
+            'customer_address' => 'nullable|string',
+            'customer_phone' => 'nullable|string|max:255',
+            'payment_method' => 'nullable|string|max:255',
+            'amount_paid' => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -92,6 +97,11 @@ class InventoryInController extends Controller
                 'discounted_amount' => $discountedAmount,
                 'grand_total_amount' => $grandTotalAmount,
                 'date_time_adjustment' => now(),
+                'customer_name' => $validated['customer_name'] ?? null,
+                'customer_address' => $validated['customer_address'] ?? null,
+                'customer_phone' => $validated['customer_phone'] ?? null,
+                'payment_method' => $validated['payment_method'] ?? 'Cashless',
+                'amount_paid' => $validated['amount_paid'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {

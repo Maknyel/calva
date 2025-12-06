@@ -11,7 +11,9 @@ use App\Http\Controllers\Api\{
     InventoryController,
     InventoryInController,
     InventoryHistoryController,
-    PosSaleController
+    PosSaleController,
+    CompanySettingController,
+    InventoryGroupController
 };
 
 /*
@@ -102,6 +104,13 @@ Route::post('/inventory_in', [InventoryInController::class, 'store']);
 Route::post('/pos-sale', [InventoryInController::class, 'store_out']);
 Route::get('/inventory-history', [InventoryHistoryController::class, 'index']);
 Route::get('/pos-sales', [PosSaleController::class, 'index']);
+
+// Company Settings
+Route::get('/company-settings', [CompanySettingController::class, 'index']);
+Route::put('/company-settings', [CompanySettingController::class, 'update']);
+
+// Inventory Groups (Sales History)
+Route::get('/inventory-groups', [InventoryGroupController::class, 'index']);
 
 
 

@@ -16,5 +16,10 @@ class InventoryHistoryGroup extends Model
         'discounted_amount',
         'grand_total_amount',
         'date_time_adjustment',
+        'customer_name',
+        'customer_address',
+        'customer_phone',
+        'payment_method',
+        'amount_paid',
     ];
 }
