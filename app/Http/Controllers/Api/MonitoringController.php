@@ -34,7 +34,7 @@ class MonitoringController extends Controller
         // Calculate totals
         $totalKita = $aggregatedData->sum('total_kita');
         $totalBenta = $aggregatedData->sum('total_benta');
-        $totalProfit = $totalBenta - $totalKita;
+        $totalProfit = $totalKita - $totalBenta;
 
         // Get items sold details
         $itemsSold = InventoryHistory::with(['inventory', 'inventoryType'])
