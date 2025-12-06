@@ -7819,6 +7819,51 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -7836,14 +7881,26 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
       loading: false,
       summary: null,
       orders: [],
+      ordersByCustomer: [],
       itemsSold: [],
-      salesOverTime: []
+      salesOverTime: [],
+      expandedCustomers: []
     };
   },
   computed: {
     totalOrderQuantity: function totalOrderQuantity() {
       return this.orders.reduce(function (sum, order) {
         return sum + parseInt(order.total_quantity);
+      }, 0);
+    },
+    totalCustomerOrders: function totalCustomerOrders() {
+      return this.ordersByCustomer.reduce(function (sum, customer) {
+        return sum + parseInt(customer.order_count);
+      }, 0);
+    },
+    totalCustomerQuantity: function totalCustomerQuantity() {
+      return this.ordersByCustomer.reduce(function (sum, customer) {
+        return sum + parseInt(customer.total_quantity);
       }, 0);
     },
     totalQuantitySold: function totalQuantitySold() {
@@ -7943,6 +8000,7 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
               data = response.data.data;
               _this2.summary = data.summary;
               _this2.orders = data.orders || [];
+              _this2.ordersByCustomer = data.orders_by_customer || [];
               _this2.itemsSold = data.items_sold;
               _this2.salesOverTime = data.sales_over_time;
               _context.n = 5;
@@ -7977,6 +8035,16 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
         hour: '2-digit',
         minute: '2-digit'
       });
+    },
+    toggleCustomerOrders: function toggleCustomerOrders(index) {
+      var position = this.expandedCustomers.indexOf(index);
+      if (position > -1) {
+        // Customer is expanded, collapse it
+        this.expandedCustomers.splice(position, 1);
+      } else {
+        // Customer is collapsed, expand it
+        this.expandedCustomers.push(index);
+      }
     },
     setDefaultDates: function setDefaultDates() {
       var now = new Date();
@@ -25106,7 +25174,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Custom styles if needed */\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Custom styles if needed */\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -30276,12 +30344,12 @@ var render = function () {
           )
         : _vm._e(),
       _vm._v(" "),
-      _vm.orders.length > 0
+      _vm.ordersByCustomer.length > 0
         ? _c("div", { staticClass: "bg-white shadow rounded p-6" }, [
             _c(
               "h2",
               { staticClass: "text-xl font-semibold text-purple-700 mb-4" },
-              [_vm._v("Orders Summary")]
+              [_vm._v("Orders by Customer")]
             ),
             _vm._v(" "),
             _c("div", { staticClass: "overflow-x-auto" }, [
@@ -30290,76 +30358,295 @@ var render = function () {
                 _vm._v(" "),
                 _c(
                   "tbody",
-                  _vm._l(_vm.orders, function (order, index) {
-                    return _c(
-                      "tr",
-                      {
-                        key: order.order_id,
-                        staticClass: "border-b hover:bg-gray-50",
-                      },
-                      [
-                        _c("td", { staticClass: "px-4 py-3" }, [
-                          _vm._v(_vm._s(index + 1)),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3 font-medium" }, [
-                          _vm._v("#" + _vm._s(order.order_id)),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3" }, [
-                          _vm._v(_vm._s(_vm.formatDate(order.order_date))),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3" }, [
-                          _vm._v(_vm._s(order.customer_name)),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3" }, [
-                          _vm._v(_vm._s(order.customer_phone)),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3" }, [
-                          _vm._v(_vm._s(order.payment_method)),
-                        ]),
-                        _vm._v(" "),
-                        _c("td", { staticClass: "px-4 py-3 text-right" }, [
-                          _vm._v(_vm._s(order.total_quantity)),
-                        ]),
-                        _vm._v(" "),
+                  [
+                    _vm._l(_vm.ordersByCustomer, function (customer, index) {
+                      return [
                         _c(
-                          "td",
-                          { staticClass: "px-4 py-3 text-right text-blue-600" },
-                          [
-                            _vm._v(
-                              "₱" + _vm._s(_vm.formatNumber(order.total_cost))
-                            ),
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "td",
-                          {
-                            staticClass: "px-4 py-3 text-right text-green-600",
-                          },
-                          [
-                            _vm._v(
-                              "₱" + _vm._s(_vm.formatNumber(order.total_sales))
-                            ),
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "td",
+                          "tr",
                           {
                             staticClass:
-                              "px-4 py-3 text-right text-purple-600 font-semibold",
+                              "border-b hover:bg-purple-50 cursor-pointer transition-colors",
+                            class: {
+                              "bg-purple-50":
+                                _vm.expandedCustomers.includes(index),
+                            },
+                            on: {
+                              click: function ($event) {
+                                return _vm.toggleCustomerOrders(index)
+                              },
+                            },
                           },
-                          [_vm._v("₱" + _vm._s(_vm.formatNumber(order.profit)))]
+                          [
+                            _c("td", { staticClass: "px-4 py-3 text-center" }, [
+                              _c(
+                                "span",
+                                { staticClass: "text-purple-600 font-bold" },
+                                [
+                                  _vm._v(
+                                    "\n                    " +
+                                      _vm._s(
+                                        _vm.expandedCustomers.includes(index)
+                                          ? "▼"
+                                          : "▶"
+                                      ) +
+                                      "\n                  "
+                                  ),
+                                ]
+                              ),
+                            ]),
+                            _vm._v(" "),
+                            _c("td", { staticClass: "px-4 py-3" }, [
+                              _vm._v(_vm._s(index + 1)),
+                            ]),
+                            _vm._v(" "),
+                            _c(
+                              "td",
+                              {
+                                staticClass:
+                                  "px-4 py-3 font-medium text-purple-700",
+                              },
+                              [_vm._v(_vm._s(customer.customer_name))]
+                            ),
+                            _vm._v(" "),
+                            _c("td", { staticClass: "px-4 py-3" }, [
+                              _vm._v(_vm._s(customer.customer_phone)),
+                            ]),
+                            _vm._v(" "),
+                            _c("td", { staticClass: "px-4 py-3" }, [
+                              _vm._v(_vm._s(customer.customer_address)),
+                            ]),
+                            _vm._v(" "),
+                            _c(
+                              "td",
+                              {
+                                staticClass:
+                                  "px-4 py-3 text-right font-semibold",
+                              },
+                              [_vm._v(_vm._s(customer.order_count))]
+                            ),
+                            _vm._v(" "),
+                            _c("td", { staticClass: "px-4 py-3 text-right" }, [
+                              _vm._v(_vm._s(customer.total_quantity)),
+                            ]),
+                            _vm._v(" "),
+                            _c(
+                              "td",
+                              {
+                                staticClass:
+                                  "px-4 py-3 text-right text-blue-600",
+                              },
+                              [
+                                _vm._v(
+                                  "₱" +
+                                    _vm._s(
+                                      _vm.formatNumber(customer.total_cost)
+                                    )
+                                ),
+                              ]
+                            ),
+                            _vm._v(" "),
+                            _c(
+                              "td",
+                              {
+                                staticClass:
+                                  "px-4 py-3 text-right text-green-600",
+                              },
+                              [
+                                _vm._v(
+                                  "₱" +
+                                    _vm._s(
+                                      _vm.formatNumber(customer.total_sales)
+                                    )
+                                ),
+                              ]
+                            ),
+                            _vm._v(" "),
+                            _c(
+                              "td",
+                              {
+                                staticClass:
+                                  "px-4 py-3 text-right text-purple-600 font-semibold",
+                              },
+                              [
+                                _vm._v(
+                                  "₱" +
+                                    _vm._s(_vm.formatNumber(customer.profit))
+                                ),
+                              ]
+                            ),
+                          ]
                         ),
+                        _vm._v(" "),
+                        _vm.expandedCustomers.includes(index)
+                          ? _c("tr", { staticClass: "bg-gray-50" }, [
+                              _c(
+                                "td",
+                                {
+                                  staticClass: "px-0 py-0",
+                                  attrs: { colspan: "10" },
+                                },
+                                [
+                                  _c("div", { staticClass: "px-8 py-4" }, [
+                                    _c(
+                                      "h4",
+                                      {
+                                        staticClass:
+                                          "text-sm font-semibold text-gray-700 mb-2",
+                                      },
+                                      [_vm._v("Individual Orders:")]
+                                    ),
+                                    _vm._v(" "),
+                                    _c(
+                                      "table",
+                                      {
+                                        staticClass:
+                                          "w-full text-xs border border-gray-200",
+                                      },
+                                      [
+                                        _vm._m(1, true),
+                                        _vm._v(" "),
+                                        _c(
+                                          "tbody",
+                                          _vm._l(
+                                            customer.orders,
+                                            function (order, orderIndex) {
+                                              return _c(
+                                                "tr",
+                                                {
+                                                  key: orderIndex,
+                                                  staticClass:
+                                                    "border-b border-gray-200 hover:bg-gray-100",
+                                                },
+                                                [
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass:
+                                                        "px-3 py-2 font-medium",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        "#" +
+                                                          _vm._s(order.order_id)
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass: "px-3 py-2",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        _vm._s(
+                                                          _vm.formatDate(
+                                                            order.order_date
+                                                          )
+                                                        )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass: "px-3 py-2",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        _vm._s(
+                                                          order.payment_method
+                                                        )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass:
+                                                        "px-3 py-2 text-right",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        _vm._s(
+                                                          order.total_quantity
+                                                        )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass:
+                                                        "px-3 py-2 text-right text-blue-600",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        "₱" +
+                                                          _vm._s(
+                                                            _vm.formatNumber(
+                                                              order.total_cost
+                                                            )
+                                                          )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass:
+                                                        "px-3 py-2 text-right text-green-600",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        "₱" +
+                                                          _vm._s(
+                                                            _vm.formatNumber(
+                                                              order.total_sales
+                                                            )
+                                                          )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                  _vm._v(" "),
+                                                  _c(
+                                                    "td",
+                                                    {
+                                                      staticClass:
+                                                        "px-3 py-2 text-right text-purple-600 font-semibold",
+                                                    },
+                                                    [
+                                                      _vm._v(
+                                                        "₱" +
+                                                          _vm._s(
+                                                            _vm.formatNumber(
+                                                              order.profit
+                                                            )
+                                                          )
+                                                      ),
+                                                    ]
+                                                  ),
+                                                ]
+                                              )
+                                            }
+                                          ),
+                                          0
+                                        ),
+                                      ]
+                                    ),
+                                  ]),
+                                ]
+                              ),
+                            ])
+                          : _vm._e(),
                       ]
-                    )
-                  }),
-                  0
+                    }),
+                  ],
+                  2
                 ),
                 _vm._v(" "),
                 _c(
@@ -30369,12 +30656,16 @@ var render = function () {
                     _c("tr", [
                       _c(
                         "td",
-                        { staticClass: "px-4 py-3", attrs: { colspan: "6" } },
+                        { staticClass: "px-4 py-3", attrs: { colspan: "5" } },
                         [_vm._v("TOTAL")]
                       ),
                       _vm._v(" "),
                       _c("td", { staticClass: "px-4 py-3 text-right" }, [
-                        _vm._v(_vm._s(_vm.totalOrderQuantity)),
+                        _vm._v(_vm._s(_vm.totalCustomerOrders)),
+                      ]),
+                      _vm._v(" "),
+                      _c("td", { staticClass: "px-4 py-3 text-right" }, [
+                        _vm._v(_vm._s(_vm.totalCustomerQuantity)),
                       ]),
                       _vm._v(" "),
                       _c(
@@ -30462,17 +30753,17 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("thead", { staticClass: "bg-purple-100 text-purple-700" }, [
       _c("tr", [
+        _c("th", { staticClass: "px-4 py-3 w-10" }),
+        _vm._v(" "),
         _c("th", { staticClass: "px-4 py-3" }, [_vm._v("#")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Order ID")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Date")]),
-        _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Customer")]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Customer Name")]),
         _vm._v(" "),
         _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Phone")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Payment")]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Address")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Orders")]),
         _vm._v(" "),
         _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Items")]),
         _vm._v(" "),
@@ -30481,6 +30772,28 @@ var staticRenderFns = [
         _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Sales")]),
         _vm._v(" "),
         _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Profit")]),
+      ]),
+    ])
+  },
+  function () {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("thead", { staticClass: "bg-gray-200 text-gray-700" }, [
+      _c("tr", [
+        _c("th", { staticClass: "px-3 py-2 text-left" }, [_vm._v("Order ID")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-left" }, [_vm._v("Date")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-left" }, [_vm._v("Payment")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-right" }, [_vm._v("Items")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-right" }, [_vm._v("Cost")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-right" }, [_vm._v("Sales")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-3 py-2 text-right" }, [_vm._v("Profit")]),
       ]),
     ])
   },

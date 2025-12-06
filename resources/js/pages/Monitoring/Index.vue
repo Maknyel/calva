@@ -56,19 +56,19 @@
         </div>
       </div>
 
-      <!-- Orders Table -->
-      <div v-if="orders.length > 0" class="bg-white shadow rounded p-6">
-        <h2 class="text-xl font-semibold text-purple-700 mb-4">Orders Summary</h2>
+      <!-- Orders by Customer Table -->
+      <div v-if="ordersByCustomer.length > 0" class="bg-white shadow rounded p-6">
+        <h2 class="text-xl font-semibold text-purple-700 mb-4">Orders by Customer</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead class="bg-purple-100 text-purple-700">
               <tr>
+                <th class="px-4 py-3 w-10"></th>
                 <th class="px-4 py-3">#</th>
-                <th class="px-4 py-3">Order ID</th>
-                <th class="px-4 py-3">Date</th>
-                <th class="px-4 py-3">Customer</th>
+                <th class="px-4 py-3">Customer Name</th>
                 <th class="px-4 py-3">Phone</th>
-                <th class="px-4 py-3">Payment</th>
+                <th class="px-4 py-3">Address</th>
+                <th class="px-4 py-3 text-right">Orders</th>
                 <th class="px-4 py-3 text-right">Items</th>
                 <th class="px-4 py-3 text-right">Cost</th>
                 <th class="px-4 py-3 text-right">Sales</th>
@@ -76,27 +76,72 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(order, index) in orders"
-                :key="order.order_id"
-                class="border-b hover:bg-gray-50"
-              >
-                <td class="px-4 py-3">{{ index + 1 }}</td>
-                <td class="px-4 py-3 font-medium">#{{ order.order_id }}</td>
-                <td class="px-4 py-3">{{ formatDate(order.order_date) }}</td>
-                <td class="px-4 py-3">{{ order.customer_name }}</td>
-                <td class="px-4 py-3">{{ order.customer_phone }}</td>
-                <td class="px-4 py-3">{{ order.payment_method }}</td>
-                <td class="px-4 py-3 text-right">{{ order.total_quantity }}</td>
-                <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(order.total_cost) }}</td>
-                <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(order.total_sales) }}</td>
-                <td class="px-4 py-3 text-right text-purple-600 font-semibold">₱{{ formatNumber(order.profit) }}</td>
-              </tr>
+              <template v-for="(customer, index) in ordersByCustomer">
+                <!-- Customer Row (Clickable) -->
+                <tr
+                  @click="toggleCustomerOrders(index)"
+                  class="border-b hover:bg-purple-50 cursor-pointer transition-colors"
+                  :class="{ 'bg-purple-50': expandedCustomers.includes(index) }"
+                >
+                  <td class="px-4 py-3 text-center">
+                    <span class="text-purple-600 font-bold">
+                      {{ expandedCustomers.includes(index) ? '▼' : '▶' }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">{{ index + 1 }}</td>
+                  <td class="px-4 py-3 font-medium text-purple-700">{{ customer.customer_name }}</td>
+                  <td class="px-4 py-3">{{ customer.customer_phone }}</td>
+                  <td class="px-4 py-3">{{ customer.customer_address }}</td>
+                  <td class="px-4 py-3 text-right font-semibold">{{ customer.order_count }}</td>
+                  <td class="px-4 py-3 text-right">{{ customer.total_quantity }}</td>
+                  <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(customer.total_cost) }}</td>
+                  <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(customer.total_sales) }}</td>
+                  <td class="px-4 py-3 text-right text-purple-600 font-semibold">₱{{ formatNumber(customer.profit) }}</td>
+                </tr>
+
+                <!-- Expanded Orders for this Customer -->
+                <tr v-if="expandedCustomers.includes(index)" class="bg-gray-50">
+                  <td colspan="10" class="px-0 py-0">
+                    <div class="px-8 py-4">
+                      <h4 class="text-sm font-semibold text-gray-700 mb-2">Individual Orders:</h4>
+                      <table class="w-full text-xs border border-gray-200">
+                        <thead class="bg-gray-200 text-gray-700">
+                          <tr>
+                            <th class="px-3 py-2 text-left">Order ID</th>
+                            <th class="px-3 py-2 text-left">Date</th>
+                            <th class="px-3 py-2 text-left">Payment</th>
+                            <th class="px-3 py-2 text-right">Items</th>
+                            <th class="px-3 py-2 text-right">Cost</th>
+                            <th class="px-3 py-2 text-right">Sales</th>
+                            <th class="px-3 py-2 text-right">Profit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr
+                            v-for="(order, orderIndex) in customer.orders"
+                            :key="orderIndex"
+                            class="border-b border-gray-200 hover:bg-gray-100"
+                          >
+                            <td class="px-3 py-2 font-medium">#{{ order.order_id }}</td>
+                            <td class="px-3 py-2">{{ formatDate(order.order_date) }}</td>
+                            <td class="px-3 py-2">{{ order.payment_method }}</td>
+                            <td class="px-3 py-2 text-right">{{ order.total_quantity }}</td>
+                            <td class="px-3 py-2 text-right text-blue-600">₱{{ formatNumber(order.total_cost) }}</td>
+                            <td class="px-3 py-2 text-right text-green-600">₱{{ formatNumber(order.total_sales) }}</td>
+                            <td class="px-3 py-2 text-right text-purple-600 font-semibold">₱{{ formatNumber(order.profit) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
             <tfoot class="bg-purple-50 font-bold text-purple-700">
               <tr>
-                <td colspan="6" class="px-4 py-3">TOTAL</td>
-                <td class="px-4 py-3 text-right">{{ totalOrderQuantity }}</td>
+                <td colspan="5" class="px-4 py-3">TOTAL</td>
+                <td class="px-4 py-3 text-right">{{ totalCustomerOrders }}</td>
+                <td class="px-4 py-3 text-right">{{ totalCustomerQuantity }}</td>
                 <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(summary.total_kita) }}</td>
                 <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(summary.total_benta) }}</td>
                 <td class="px-4 py-3 text-right text-purple-600">₱{{ formatNumber(summary.total_profit) }}</td>
@@ -150,13 +195,21 @@ export default {
       loading: false,
       summary: null,
       orders: [],
+      ordersByCustomer: [],
       itemsSold: [],
       salesOverTime: [],
+      expandedCustomers: [],
     };
   },
   computed: {
     totalOrderQuantity() {
       return this.orders.reduce((sum, order) => sum + parseInt(order.total_quantity), 0);
+    },
+    totalCustomerOrders() {
+      return this.ordersByCustomer.reduce((sum, customer) => sum + parseInt(customer.order_count), 0);
+    },
+    totalCustomerQuantity() {
+      return this.ordersByCustomer.reduce((sum, customer) => sum + parseInt(customer.total_quantity), 0);
     },
     totalQuantitySold() {
       return this.itemsSold.reduce((sum, item) => sum + parseInt(item.total_quantity_sold), 0);
@@ -233,6 +286,7 @@ export default {
         const data = response.data.data;
         this.summary = data.summary;
         this.orders = data.orders || [];
+        this.ordersByCustomer = data.orders_by_customer || [];
         this.itemsSold = data.items_sold;
         this.salesOverTime = data.sales_over_time;
       } catch (error) {
@@ -257,6 +311,16 @@ export default {
         hour: '2-digit',
         minute: '2-digit',
       });
+    },
+    toggleCustomerOrders(index) {
+      const position = this.expandedCustomers.indexOf(index);
+      if (position > -1) {
+        // Customer is expanded, collapse it
+        this.expandedCustomers.splice(position, 1);
+      } else {
+        // Customer is collapsed, expand it
+        this.expandedCustomers.push(index);
+      }
     },
     setDefaultDates() {
       const now = new Date();
