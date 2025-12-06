@@ -56,47 +56,47 @@
         </div>
       </div>
 
-      <!-- Sales Over Time Chart -->
-      <div v-if="salesOverTime.length > 0" class="bg-white shadow rounded p-6">
-        <h2 class="text-xl font-semibold text-purple-700 mb-4">Sales Over Time</h2>
-        <div class="h-80">
-          <line-chart :chart-data="chartData" :chart-options="chartOptions" />
-        </div>
-      </div>
-
-      <!-- Items Sold Table -->
-      <div v-if="itemsSold.length > 0" class="bg-white shadow rounded p-6">
-        <h2 class="text-xl font-semibold text-purple-700 mb-4">Items Sold</h2>
+      <!-- Orders Table -->
+      <div v-if="orders.length > 0" class="bg-white shadow rounded p-6">
+        <h2 class="text-xl font-semibold text-purple-700 mb-4">Orders Summary</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead class="bg-purple-100 text-purple-700">
               <tr>
                 <th class="px-4 py-3">#</th>
-                <th class="px-4 py-3">Item Name</th>
-                <th class="px-4 py-3 text-right">Quantity Sold</th>
-                <th class="px-4 py-3 text-right">Cost Price</th>
-                <th class="px-4 py-3 text-right">Sale Price</th>
+                <th class="px-4 py-3">Order ID</th>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3">Customer</th>
+                <th class="px-4 py-3">Phone</th>
+                <th class="px-4 py-3">Payment</th>
+                <th class="px-4 py-3 text-right">Items</th>
+                <th class="px-4 py-3 text-right">Cost</th>
+                <th class="px-4 py-3 text-right">Sales</th>
                 <th class="px-4 py-3 text-right">Profit</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="(item, index) in itemsSold"
-                :key="item.inventory_id"
+                v-for="(order, index) in orders"
+                :key="order.order_id"
                 class="border-b hover:bg-gray-50"
               >
                 <td class="px-4 py-3">{{ index + 1 }}</td>
-                <td class="px-4 py-3 font-medium">{{ item.name }}</td>
-                <td class="px-4 py-3 text-right">{{ item.total_quantity_sold }}</td>
-                <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(item.total_cost_price) }}</td>
-                <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(item.total_sale_price) }}</td>
-                <td class="px-4 py-3 text-right text-purple-600 font-semibold">₱{{ formatNumber(item.profit) }}</td>
+                <td class="px-4 py-3 font-medium">#{{ order.order_id }}</td>
+                <td class="px-4 py-3">{{ formatDate(order.order_date) }}</td>
+                <td class="px-4 py-3">{{ order.customer_name }}</td>
+                <td class="px-4 py-3">{{ order.customer_phone }}</td>
+                <td class="px-4 py-3">{{ order.payment_method }}</td>
+                <td class="px-4 py-3 text-right">{{ order.total_quantity }}</td>
+                <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(order.total_cost) }}</td>
+                <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(order.total_sales) }}</td>
+                <td class="px-4 py-3 text-right text-purple-600 font-semibold">₱{{ formatNumber(order.profit) }}</td>
               </tr>
             </tbody>
             <tfoot class="bg-purple-50 font-bold text-purple-700">
               <tr>
-                <td colspan="2" class="px-4 py-3">TOTAL</td>
-                <td class="px-4 py-3 text-right">{{ totalQuantitySold }}</td>
+                <td colspan="6" class="px-4 py-3">TOTAL</td>
+                <td class="px-4 py-3 text-right">{{ totalOrderQuantity }}</td>
                 <td class="px-4 py-3 text-right text-blue-600">₱{{ formatNumber(summary.total_kita) }}</td>
                 <td class="px-4 py-3 text-right text-green-600">₱{{ formatNumber(summary.total_benta) }}</td>
                 <td class="px-4 py-3 text-right text-purple-600">₱{{ formatNumber(summary.total_profit) }}</td>
@@ -105,6 +105,15 @@
           </table>
         </div>
       </div>
+
+      <!-- Sales Over Time Chart -->
+      <div v-if="salesOverTime.length > 0" class="bg-white shadow rounded p-6">
+        <h2 class="text-xl font-semibold text-purple-700 mb-4">Sales Over Time</h2>
+        <div class="h-80">
+          <line-chart :chart-data="chartData" :chart-options="chartOptions" />
+        </div>
+      </div>
+
 
       <!-- No Data Message -->
       <div v-if="!loading && summary && itemsSold.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
@@ -140,11 +149,15 @@ export default {
       dateTo: '',
       loading: false,
       summary: null,
+      orders: [],
       itemsSold: [],
       salesOverTime: [],
     };
   },
   computed: {
+    totalOrderQuantity() {
+      return this.orders.reduce((sum, order) => sum + parseInt(order.total_quantity), 0);
+    },
     totalQuantitySold() {
       return this.itemsSold.reduce((sum, item) => sum + parseInt(item.total_quantity_sold), 0);
     },
@@ -219,6 +232,7 @@ export default {
 
         const data = response.data.data;
         this.summary = data.summary;
+        this.orders = data.orders || [];
         this.itemsSold = data.items_sold;
         this.salesOverTime = data.sales_over_time;
       } catch (error) {
@@ -232,6 +246,16 @@ export default {
       return parseFloat(value).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
+      });
+    },
+    formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       });
     },
     setDefaultDates() {

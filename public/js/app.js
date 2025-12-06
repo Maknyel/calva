@@ -7810,6 +7810,15 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -7826,11 +7835,17 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
       dateTo: '',
       loading: false,
       summary: null,
+      orders: [],
       itemsSold: [],
       salesOverTime: []
     };
   },
   computed: {
+    totalOrderQuantity: function totalOrderQuantity() {
+      return this.orders.reduce(function (sum, order) {
+        return sum + parseInt(order.total_quantity);
+      }, 0);
+    },
     totalQuantitySold: function totalQuantitySold() {
       return this.itemsSold.reduce(function (sum, item) {
         return sum + parseInt(item.total_quantity_sold);
@@ -7927,6 +7942,7 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
               response = _context.v;
               data = response.data.data;
               _this2.summary = data.summary;
+              _this2.orders = data.orders || [];
               _this2.itemsSold = data.items_sold;
               _this2.salesOverTime = data.sales_over_time;
               _context.n = 5;
@@ -7950,6 +7966,16 @@ chart_js__WEBPACK_IMPORTED_MODULE_2__.Chart.register(chart_js__WEBPACK_IMPORTED_
       return parseFloat(value).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
+      });
+    },
+    formatDate: function formatDate(dateString) {
+      var date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
     },
     setDefaultDates: function setDefaultDates() {
@@ -25080,7 +25106,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Custom styles if needed */\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Custom styles if needed */\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -30250,36 +30276,12 @@ var render = function () {
           )
         : _vm._e(),
       _vm._v(" "),
-      _vm.salesOverTime.length > 0
+      _vm.orders.length > 0
         ? _c("div", { staticClass: "bg-white shadow rounded p-6" }, [
             _c(
               "h2",
               { staticClass: "text-xl font-semibold text-purple-700 mb-4" },
-              [_vm._v("Sales Over Time")]
-            ),
-            _vm._v(" "),
-            _c(
-              "div",
-              { staticClass: "h-80" },
-              [
-                _c("line-chart", {
-                  attrs: {
-                    "chart-data": _vm.chartData,
-                    "chart-options": _vm.chartOptions,
-                  },
-                }),
-              ],
-              1
-            ),
-          ])
-        : _vm._e(),
-      _vm._v(" "),
-      _vm.itemsSold.length > 0
-        ? _c("div", { staticClass: "bg-white shadow rounded p-6" }, [
-            _c(
-              "h2",
-              { staticClass: "text-xl font-semibold text-purple-700 mb-4" },
-              [_vm._v("Items Sold")]
+              [_vm._v("Orders Summary")]
             ),
             _vm._v(" "),
             _c("div", { staticClass: "overflow-x-auto" }, [
@@ -30288,11 +30290,11 @@ var render = function () {
                 _vm._v(" "),
                 _c(
                   "tbody",
-                  _vm._l(_vm.itemsSold, function (item, index) {
+                  _vm._l(_vm.orders, function (order, index) {
                     return _c(
                       "tr",
                       {
-                        key: item.inventory_id,
+                        key: order.order_id,
                         staticClass: "border-b hover:bg-gray-50",
                       },
                       [
@@ -30301,11 +30303,27 @@ var render = function () {
                         ]),
                         _vm._v(" "),
                         _c("td", { staticClass: "px-4 py-3 font-medium" }, [
-                          _vm._v(_vm._s(item.name)),
+                          _vm._v("#" + _vm._s(order.order_id)),
+                        ]),
+                        _vm._v(" "),
+                        _c("td", { staticClass: "px-4 py-3" }, [
+                          _vm._v(_vm._s(_vm.formatDate(order.order_date))),
+                        ]),
+                        _vm._v(" "),
+                        _c("td", { staticClass: "px-4 py-3" }, [
+                          _vm._v(_vm._s(order.customer_name)),
+                        ]),
+                        _vm._v(" "),
+                        _c("td", { staticClass: "px-4 py-3" }, [
+                          _vm._v(_vm._s(order.customer_phone)),
+                        ]),
+                        _vm._v(" "),
+                        _c("td", { staticClass: "px-4 py-3" }, [
+                          _vm._v(_vm._s(order.payment_method)),
                         ]),
                         _vm._v(" "),
                         _c("td", { staticClass: "px-4 py-3 text-right" }, [
-                          _vm._v(_vm._s(item.total_quantity_sold)),
+                          _vm._v(_vm._s(order.total_quantity)),
                         ]),
                         _vm._v(" "),
                         _c(
@@ -30313,8 +30331,7 @@ var render = function () {
                           { staticClass: "px-4 py-3 text-right text-blue-600" },
                           [
                             _vm._v(
-                              "₱" +
-                                _vm._s(_vm.formatNumber(item.total_cost_price))
+                              "₱" + _vm._s(_vm.formatNumber(order.total_cost))
                             ),
                           ]
                         ),
@@ -30326,8 +30343,7 @@ var render = function () {
                           },
                           [
                             _vm._v(
-                              "₱" +
-                                _vm._s(_vm.formatNumber(item.total_sale_price))
+                              "₱" + _vm._s(_vm.formatNumber(order.total_sales))
                             ),
                           ]
                         ),
@@ -30338,7 +30354,7 @@ var render = function () {
                             staticClass:
                               "px-4 py-3 text-right text-purple-600 font-semibold",
                           },
-                          [_vm._v("₱" + _vm._s(_vm.formatNumber(item.profit)))]
+                          [_vm._v("₱" + _vm._s(_vm.formatNumber(order.profit)))]
                         ),
                       ]
                     )
@@ -30353,12 +30369,12 @@ var render = function () {
                     _c("tr", [
                       _c(
                         "td",
-                        { staticClass: "px-4 py-3", attrs: { colspan: "2" } },
+                        { staticClass: "px-4 py-3", attrs: { colspan: "6" } },
                         [_vm._v("TOTAL")]
                       ),
                       _vm._v(" "),
                       _c("td", { staticClass: "px-4 py-3 text-right" }, [
-                        _vm._v(_vm._s(_vm.totalQuantitySold)),
+                        _vm._v(_vm._s(_vm.totalOrderQuantity)),
                       ]),
                       _vm._v(" "),
                       _c(
@@ -30401,6 +30417,30 @@ var render = function () {
           ])
         : _vm._e(),
       _vm._v(" "),
+      _vm.salesOverTime.length > 0
+        ? _c("div", { staticClass: "bg-white shadow rounded p-6" }, [
+            _c(
+              "h2",
+              { staticClass: "text-xl font-semibold text-purple-700 mb-4" },
+              [_vm._v("Sales Over Time")]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "h-80" },
+              [
+                _c("line-chart", {
+                  attrs: {
+                    "chart-data": _vm.chartData,
+                    "chart-options": _vm.chartOptions,
+                  },
+                }),
+              ],
+              1
+            ),
+          ])
+        : _vm._e(),
+      _vm._v(" "),
       !_vm.loading && _vm.summary && _vm.itemsSold.length === 0
         ? _c(
             "div",
@@ -30424,19 +30464,21 @@ var staticRenderFns = [
       _c("tr", [
         _c("th", { staticClass: "px-4 py-3" }, [_vm._v("#")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Item Name")]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Order ID")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3 text-right" }, [
-          _vm._v("Quantity Sold"),
-        ]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Date")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3 text-right" }, [
-          _vm._v("Cost Price"),
-        ]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Customer")]),
         _vm._v(" "),
-        _c("th", { staticClass: "px-4 py-3 text-right" }, [
-          _vm._v("Sale Price"),
-        ]),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Phone")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-4 py-3" }, [_vm._v("Payment")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Items")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Cost")]),
+        _vm._v(" "),
+        _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Sales")]),
         _vm._v(" "),
         _c("th", { staticClass: "px-4 py-3 text-right" }, [_vm._v("Profit")]),
       ]),

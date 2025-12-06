@@ -19,22 +19,40 @@ class MonitoringController extends Controller
         $dateFrom = $request->date_from;
         $dateTo = $request->date_to;
 
-        // Get aggregated data grouped by inventory_group_id
-        $aggregatedData = InventoryHistory::whereBetween('date_time_adjustment', [$dateFrom, $dateTo])
+        // Get orders grouped by inventory_group_id with customer info
+        $orders = InventoryHistory::with('inventoryGroup')
+            ->whereBetween('date_time_adjustment', [$dateFrom, $dateTo])
             ->whereNotNull('inventory_group_id')
-            ->where('invinorout', 'out') // Only count sales (out transactions)
+            ->where('invinorout', 'out')
             ->select('inventory_group_id')
-            ->selectRaw('SUM(sale_price_cost) as total_kita')
-            ->selectRaw('SUM(cost_price_sold) as total_benta')
+            ->selectRaw('SUM(cost_price_sold) as total_cost')
+            ->selectRaw('SUM(sale_price_cost) as total_sales')
             ->selectRaw('SUM(quantity_sold) as total_quantity')
-            ->selectRaw('COUNT(*) as transaction_count')
+            ->selectRaw('MIN(date_time_adjustment) as order_date')
             ->groupBy('inventory_group_id')
-            ->get();
+            ->get()
+            ->map(function ($order) {
+                $group = $order->inventoryGroup;
+                return [
+                    'order_id' => $order->inventory_group_id,
+                    'order_date' => $order->order_date,
+                    'customer_name' => $group->customer_name ?? 'Walk-in',
+                    'customer_address' => $group->customer_address ?? 'N/A',
+                    'customer_phone' => $group->customer_phone ?? 'N/A',
+                    'payment_method' => $group->payment_method ?? 'N/A',
+                    'total_cost' => round($order->total_cost, 2),
+                    'total_sales' => round($order->total_sales, 2),
+                    'profit' => round($order->total_sales - $order->total_cost, 2),
+                    'total_quantity' => $order->total_quantity,
+                    'grand_total' => round($group->grand_total_amount ?? 0, 2),
+                    'amount_paid' => round($group->amount_paid ?? 0, 2),
+                ];
+            });
 
         // Calculate totals
-        $totalKita = $aggregatedData->sum('total_kita');
-        $totalBenta = $aggregatedData->sum('total_benta');
-        $totalProfit = $totalKita - $totalBenta;
+        $totalCost = $orders->sum('total_cost');
+        $totalSales = $orders->sum('total_sales');
+        $totalProfit = $totalSales - $totalCost;
 
         // Get items sold details
         $itemsSold = InventoryHistory::with(['inventory', 'inventoryType'])
@@ -46,7 +64,7 @@ class MonitoringController extends Controller
                 DB::raw('SUM(quantity_sold) as total_quantity_sold'),
                 DB::raw('SUM(cost_price_sold) as total_cost_price'),
                 DB::raw('SUM(sale_price_cost) as total_sale_price'),
-                DB::raw('SUM(sale_price_cost - cost_price_sold) as profit')
+                DB::raw('SUM(sale_price_cost - cost_price_sold) as profit')  // This is already correct: sales - cost
             )
             ->groupBy('inventory_id', 'name')
             ->orderByDesc('total_quantity_sold')
@@ -68,11 +86,12 @@ class MonitoringController extends Controller
             'success' => true,
             'data' => [
                 'summary' => [
-                    'total_kita' => round($totalKita, 2),
-                    'total_benta' => round($totalBenta, 2),
+                    'total_kita' => round($totalCost, 2),
+                    'total_benta' => round($totalSales, 2),
                     'total_profit' => round($totalProfit, 2),
-                    'total_transactions' => $aggregatedData->sum('transaction_count'),
+                    'total_transactions' => $orders->count(),
                 ],
+                'orders' => $orders,
                 'items_sold' => $itemsSold,
                 'sales_over_time' => $salesOverTime,
             ],
