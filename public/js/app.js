@@ -5210,7 +5210,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       dropdownOpen: false,
       showProfileModal: false,
       showPasswordModal: false,
-      companyName: 'Calva Pharma',
+      companyName: '',
       // Default fallback
       profile: {
         fname: '',

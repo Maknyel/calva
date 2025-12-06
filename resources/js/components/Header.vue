@@ -110,7 +110,7 @@ export default {
       dropdownOpen: false,
       showProfileModal: false,
       showPasswordModal: false,
-      companyName: 'Calva Pharma', // Default fallback
+      companyName: '', // Default fallback
       profile: {
         fname: '',
         lname: '',
