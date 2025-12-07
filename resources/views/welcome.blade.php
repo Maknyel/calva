@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+<?php
+    send_email(
+     to: 'marcniel_christian12@yahoo.com',
+     subject: 'Important Notice',
+     view: 'emails.notice',
+     data: ['message' => 'Hello'],
+     fromEmail: 'marcniel@dl-hosting.net',
+     fromName: company_name()
+    );
+?>
 
+eqwewqew
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -78,16 +89,7 @@
 </head>
 
 <body class="scroll-smooth text-gray-800">
-<?php
-    send_email(
-     to: 'marcniel_christian12@yahoo.com',
-     subject: 'Important Notice',
-     view: 'emails.notice',
-     data: ['message' => 'Hello'],
-     fromEmail: 'marcniel@dl-hosting.net',
-     fromName: company_name()
-    );
-?>
+
     <!-- Navigation -->
     <header class="fixed top-0 left-0 w-full shadow-md z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center p-4">
