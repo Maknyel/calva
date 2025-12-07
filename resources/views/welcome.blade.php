@@ -1,17 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<?php
-    send_email(
-     to: 'marcniel_christian12@yahoo.com',
-     subject: 'Important Notice',
-     view: 'emails.notice',
-     data: ['message' => 'Hello'],
-     fromEmail: 'marcniel@dl-hosting.net',
-     fromName: company_name()
-    );
-?>
 
-eqwewqew
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
