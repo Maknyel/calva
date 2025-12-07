@@ -48,13 +48,13 @@ return new class extends Migration
 
         // Add created_by and user_id to inventory_history_groups table
         Schema::table('inventory_history_groups', function (Blueprint $table) {
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->longText('created_by')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
         });
 
         // Add created_by and user_id to inventory_returns table
         Schema::table('inventory_returns', function (Blueprint $table) {
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->longText('created_by')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
         });
     }
@@ -68,16 +68,30 @@ return new class extends Migration
     {
         // Remove columns from inventory_returns table
         Schema::table('inventory_returns', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
+            // Check and drop foreign key constraint if it exists
+            $sm = Schema::getConnection()->getDoctrineSchemaManager();
+            $indexesFound = $sm->listTableIndexes('inventory_returns');
+
+            if (array_key_exists('inventory_returns_created_by_foreign', $indexesFound)) {
+                $table->dropForeign(['created_by']);
+            }
             $table->dropColumn('created_by');
+
             $table->dropForeign(['user_id']);
             $table->dropColumn('user_id');
         });
 
         // Remove columns from inventory_history_groups table
         Schema::table('inventory_history_groups', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
+            // Check and drop foreign key constraint if it exists
+            $sm = Schema::getConnection()->getDoctrineSchemaManager();
+            $indexesFound = $sm->listTableIndexes('inventory_history_groups');
+
+            if (array_key_exists('inventory_history_groups_created_by_foreign', $indexesFound)) {
+                $table->dropForeign(['created_by']);
+            }
             $table->dropColumn('created_by');
+
             $table->dropForeign(['user_id']);
             $table->dropColumn('user_id');
         });
