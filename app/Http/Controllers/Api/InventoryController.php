@@ -42,6 +42,7 @@ class InventoryController extends Controller
             'current_quantity' => 'required|integer',
             'current_cost_price' => 'required|numeric',
             'current_sale_price' => 'required|numeric',
+            'user_id'   => 'required|numeric'
         ]);
 
         if ($request->hasFile('image')) {

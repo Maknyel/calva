@@ -235,6 +235,7 @@ export default {
   name: "PosPage",
   data() {
     return {
+      userId: null,
       searchQuery: "",
       products: [],
       cart: [],
@@ -321,6 +322,7 @@ export default {
             cost_price: i.cost_price,
             sale_price: i.sale_price, // send hidden sale price
           })),
+          user_id: this.userId,
           discount_percent: this.discountPercent,
           total: this.total,
           discounted_price: this.discountedPrice,
@@ -348,6 +350,8 @@ export default {
     },
   },
   mounted() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
     this.fetchProducts();
   },
 };

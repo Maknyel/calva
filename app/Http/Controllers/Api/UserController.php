@@ -48,12 +48,14 @@ class UserController extends Controller
             'contact_number' => 'required|string|max:255',
             'password' => 'nullable|string|min:6',
             'role_id' => 'required|exists:roles,id',  // validate against roles table
+            'user_id'   => 'required|numeric'
         ]);
 
         $user = User::create([
             'fname' => $validated['fname'],
             'lname' => $validated['lname'],
             'email' => $validated['email'],
+            'created_by'    => $validated['user_id'],
             'contact_number' => $validated['contact_number'],
             'password' => Hash::make($validated['password'] ?? 'Abc123456'),
             'role_id' => $validated['role_id'],

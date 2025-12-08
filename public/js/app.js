@@ -5555,29 +5555,8 @@ __webpack_require__.r(__webpack_exports__);
         name: 'Dashboard',
         path: '/vue/dashboard'
       }, {
-        name: 'Inventory',
-        path: '/vue/inventory'
-      }, {
         name: 'Point Of Sale',
         path: '/vue/point-of-sale'
-      }, {
-        name: 'Sales History',
-        path: '/vue/sales-history'
-      }, {
-        name: 'Inventory History',
-        path: '/vue/inventory-history'
-      }, {
-        name: 'Distributor',
-        path: '/vue/distributor'
-      }, {
-        name: 'Inventory Type',
-        path: '/vue/inventory-type'
-      }, {
-        name: 'Supplier',
-        path: '/vue/supplier'
-      }, {
-        name: 'Company Settings',
-        path: '/vue/company-settings'
       }]
     };
   },
@@ -5619,6 +5598,36 @@ __webpack_require__.r(__webpack_exports__);
       }, {
         name: 'Company Settings',
         path: '/vue/company-settings'
+      }];
+    }
+    if (this.user.role.name == 'assistant') {
+      this.links = [{
+        name: 'Dashboard',
+        path: '/vue/dashboard'
+      }, {
+        name: 'Inventory',
+        path: '/vue/inventory'
+      }, {
+        name: 'Inventory In',
+        path: '/vue/inventory-in'
+      }, {
+        name: 'Point Of Sale',
+        path: '/vue/point-of-sale'
+      }, {
+        name: 'Sales History',
+        path: '/vue/sales-history'
+      }, {
+        name: 'Inventory History',
+        path: '/vue/inventory-history'
+      }, {
+        name: 'Distributor',
+        path: '/vue/distributor'
+      }, {
+        name: 'Inventory Type',
+        path: '/vue/inventory-type'
+      }, {
+        name: 'Supplier',
+        path: '/vue/supplier'
       }];
     }
   }
@@ -6573,6 +6582,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
   data: function data() {
     return {
       isAdmin: false,
+      userId: null,
       searchQuery: '',
       currentPage: 1,
       perPage: 6,
@@ -6599,7 +6609,11 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     };
   },
   mounted: function mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant' ? true : false;
+
+    // Get user ID from sessionStorage
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchInventoryItems();
     this.fetchRelations();
   },
@@ -6716,6 +6730,11 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
               formData = new FormData();
               for (key in _this3.form) {
                 formData.append(key, _this3.form[key]);
+              }
+
+              // Add userId to form data
+              if (_this3.userId) {
+                formData.append('user_id', _this3.userId);
               }
               if (!_this3.editingItem) {
                 _context3.n = 2;
@@ -6983,7 +7002,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant' ? true : false;
     this.fetchFilters();
     this.fetchHistory();
   }
@@ -7137,7 +7156,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       searchQuery: "",
       products: [],
       // dynamically loaded
-      inventoryCart: []
+      inventoryCart: [],
+      userId: null
     };
   },
   computed: {
@@ -7227,7 +7247,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
                     sale_price: i.sale_price,
                     expiration_date_time: i.expiration_date_time
                   };
-                })
+                }),
+                user_id: _this3.userId
               });
             case 1:
               alert("Inventory updated successfully!");
@@ -7250,7 +7271,9 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant' ? true : false;
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchProducts();
   }
 });
@@ -8344,6 +8367,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
   name: "PosPage",
   data: function data() {
     return {
+      userId: null,
       searchQuery: "",
       products: [],
       cart: [],
@@ -8461,6 +8485,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
                     sale_price: i.sale_price // send hidden sale price
                   };
                 }),
+                user_id: _this3.userId,
                 discount_percent: _this3.discountPercent,
                 total: _this3.total,
                 discounted_price: _this3.discountedPrice,
@@ -8498,6 +8523,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchProducts();
   }
 });
@@ -9143,6 +9170,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       showModal: false,
       editingUser: null,
       form: {
+        user_id: 0,
         fname: '',
         lname: '',
         email: '',
@@ -9165,9 +9193,12 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
   mounted: function mounted() {
     var _this = this;
     return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
+      var user;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.n) {
           case 0:
+            user = JSON.parse(sessionStorage.getItem('user'));
+            _this.form.user_id = user === null || user === void 0 ? void 0 : user.id;
             _context.n = 1;
             return _this.fetchRoles();
           case 1:
@@ -9284,7 +9315,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
           email: '',
           contact_number: '',
           password: '',
-          role: ''
+          role: '',
+          user_id: this.form.user_id
         };
       }
       this.showModal = true;
@@ -25120,7 +25152,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -25288,7 +25320,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -27379,44 +27411,6 @@ var render = function () {
             ]),
             _vm._v(" "),
             _c("div", { staticClass: "mb-4" }, [
-              _c(
-                "label",
-                { staticClass: "block text-gray-700 font-semibold mb-2" },
-                [_vm._v("\n            Company Logo Path\n          ")]
-              ),
-              _vm._v(" "),
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model",
-                    value: _vm.form.company_logo,
-                    expression: "form.company_logo",
-                  },
-                ],
-                staticClass:
-                  "w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500",
-                attrs: {
-                  type: "text",
-                  placeholder: "e.g., assets/images/logo.jpg",
-                },
-                domProps: { value: _vm.form.company_logo },
-                on: {
-                  input: function ($event) {
-                    if ($event.target.composing) {
-                      return
-                    }
-                    _vm.$set(_vm.form, "company_logo", $event.target.value)
-                  },
-                },
-              }),
-              _vm._v(" "),
-              _c("p", { staticClass: "text-sm text-gray-500 mt-1" }, [
-                _vm._v("Relative path to your logo image"),
-              ]),
-            ]),
-            _vm._v(" "),
-            _c("div", { staticClass: "mb-4" }, [
               _vm._m(1),
               _vm._v(" "),
               _c("textarea", {
@@ -29435,7 +29429,7 @@ var render = function () {
                 ]),
                 _vm._v(" "),
                 _c("p", { staticClass: "text-gray-500 mb-2" }, [
-                  _vm._v("Current Stock: " + _vm._s(product.stock)),
+                  _vm._v("Stock: " + _vm._s(product.stock)),
                 ]),
                 _vm._v(" "),
                 _c("div", { staticClass: "flex items-center space-x-2 mb-2" }, [

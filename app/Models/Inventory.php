@@ -22,6 +22,7 @@ class Inventory extends Model
         'current_cost_price',
         'current_sale_price',
         'date_time_adjustment',
+        'user_id'
     ];
 
     public function supplier()

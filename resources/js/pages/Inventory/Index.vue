@@ -192,7 +192,8 @@ export default {
   data() {
     return {
       isAdmin: false,
-      
+      userId: null,
+
       searchQuery: '',
       currentPage: 1,
       perPage: 6,
@@ -219,7 +220,12 @@ export default {
     };
   },
   mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = (sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant') ? true : false;
+
+    // Get user ID from sessionStorage
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
+
     this.fetchInventoryItems();
     this.fetchRelations();
   },
@@ -300,6 +306,11 @@ export default {
         const formData = new FormData();
         for (const key in this.form) {
           formData.append(key, this.form[key]);
+        }
+
+        // Add userId to form data
+        if (this.userId) {
+          formData.append('user_id', this.userId);
         }
 
         if (this.editingItem) {

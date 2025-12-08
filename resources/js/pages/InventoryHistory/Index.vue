@@ -118,7 +118,7 @@ export default {
     },
   },
   mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = (sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant') ? true : false;
     this.fetchFilters();
     this.fetchHistory();
   },

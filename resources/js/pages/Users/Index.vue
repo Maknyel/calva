@@ -113,6 +113,7 @@ export default {
       showModal: false,
       editingUser: null,
       form: {
+        user_id: 0,
         fname: '',
         lname: '',
         email: '',
@@ -133,6 +134,8 @@ export default {
     },
   },
   async mounted() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.form.user_id = user?.id;
     await this.fetchRoles();
     this.fetchUsers();
   },
@@ -188,7 +191,7 @@ export default {
       if (user) {
         this.form = { ...user, password: '' };
       } else {
-        this.form = { fname: '', lname: '', email: '', contact_number: '', password: '', role: '' };
+        this.form = { fname: '', lname: '', email: '', contact_number: '', password: '', role: '', user_id: this.form.user_id };
       }
       this.showModal = true;
     },

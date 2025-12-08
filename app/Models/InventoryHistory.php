@@ -28,6 +28,7 @@ class InventoryHistory extends Model
         'inventory_group_id',
         'date_time_adjustment',
         'expiration_date_time',
+        'user_id'
     ];
 
     protected $casts = [

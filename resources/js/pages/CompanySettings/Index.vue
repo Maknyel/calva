@@ -19,7 +19,7 @@
             />
           </div>
 
-          <!-- Company Logo Path -->
+          <!-- Company Logo Path
           <div class="mb-4">
             <label class="block text-gray-700 font-semibold mb-2">
               Company Logo Path
@@ -31,7 +31,7 @@
               placeholder="e.g., assets/images/logo.jpg"
             />
             <p class="text-sm text-gray-500 mt-1">Relative path to your logo image</p>
-          </div>
+          </div> -->
 
           <!-- Company Address -->
           <div class="mb-4">

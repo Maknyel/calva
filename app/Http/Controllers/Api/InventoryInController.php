@@ -23,6 +23,7 @@ class InventoryInController extends Controller
             'items.*.cost_price' => 'required|numeric|min:0',
             'items.*.sale_price' => 'required|numeric|min:0',
             'items.*.expiration_date_time' => 'nullable|date',
+            'user_id'   => 'required|numeric'
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -53,6 +54,7 @@ class InventoryInController extends Controller
                     'inventory_group_id' => null,
                     'date_time_adjustment' => now(),
                     'expiration_date_time' => $item['expiration_date_time'] ?? null,
+                    'user_id'  => $validated['user_id']
                 ]);
             }
         });
@@ -76,6 +78,7 @@ class InventoryInController extends Controller
             'customer_phone' => 'nullable|string|max:255',
             'payment_method' => 'nullable|string|max:255',
             'amount_paid' => 'nullable|numeric|min:0',
+            'user_id'   => 'required|numeric'
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -102,6 +105,7 @@ class InventoryInController extends Controller
                 'customer_phone' => $validated['customer_phone'] ?? null,
                 'payment_method' => $validated['payment_method'] ?? 'Cashless',
                 'amount_paid' => $validated['amount_paid'] ?? null,
+                'user_id'  => $validated['user_id']
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -131,6 +135,7 @@ class InventoryInController extends Controller
                     'total' => $item['quantity'] * $item['sale_price'],
                     'inventory_group_id' => $historyGroup->id,
                     'date_time_adjustment' => now(),
+                    'user_id'  => $validated['user_id']
                 ]);
             }
         });

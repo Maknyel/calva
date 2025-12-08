@@ -28,14 +28,7 @@ export default {
     return {
       links: [
         { name: 'Dashboard', path: '/vue/dashboard' },
-        { name: 'Inventory', path: '/vue/inventory' },
         { name: 'Point Of Sale', path: '/vue/point-of-sale' },
-        { name: 'Sales History', path: '/vue/sales-history' },
-        { name: 'Inventory History', path: '/vue/inventory-history' },
-        { name: 'Distributor', path: '/vue/distributor' },
-        { name: 'Inventory Type', path: '/vue/inventory-type' },
-        { name: 'Supplier', path: '/vue/supplier' },
-        { name: 'Company Settings', path: '/vue/company-settings' }
       ],
     };
   },
@@ -55,6 +48,23 @@ export default {
         { name: 'Supplier', path: '/vue/supplier' },
         { name: 'Users', path: '/vue/users' },
         { name: 'Company Settings', path: '/vue/company-settings' },
+      ];
+
+    }
+
+
+    if(this.user.role.name == 'assistant'){
+      this.links =
+      [
+        { name: 'Dashboard', path: '/vue/dashboard' },
+        { name: 'Inventory', path: '/vue/inventory' },
+        { name: 'Inventory In', path: '/vue/inventory-in' },
+        { name: 'Point Of Sale', path: '/vue/point-of-sale' },
+        { name: 'Sales History', path: '/vue/sales-history' },
+        { name: 'Inventory History', path: '/vue/inventory-history' },
+        { name: 'Distributor', path: '/vue/distributor' },
+        { name: 'Inventory Type', path: '/vue/inventory-type' },
+        { name: 'Supplier', path: '/vue/supplier' },
       ];
 
     }

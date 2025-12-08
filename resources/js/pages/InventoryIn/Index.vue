@@ -21,7 +21,7 @@
           class="bg-white p-4 rounded shadow flex flex-col items-center"
         >
           <h3 class="font-semibold text-lg">{{ product.name }}</h3>
-          <p class="text-gray-500 mb-2">Current Stock: {{ product.stock }}</p>
+          <p class="text-gray-500 mb-2">Stock: {{ product.stock }}</p>
 
           <div class="flex items-center space-x-2 mb-2">
             <button @click="decreaseQty(product)" class="px-2 py-1 bg-gray-200 rounded">-</button>
@@ -123,6 +123,7 @@ export default {
       searchQuery: "",
       products: [], // dynamically loaded
       inventoryCart: [],
+      userId: null,
     };
   },
   computed: {
@@ -186,6 +187,7 @@ export default {
             sale_price: i.sale_price,
             expiration_date_time: i.expiration_date_time,
           })),
+          user_id: this.userId
         });
         alert("Inventory updated successfully!");
         this.inventoryCart = [];
@@ -197,7 +199,9 @@ export default {
     },
   },
   mounted() {
-    this.isAdmin = sessionStorage.getItem('currentUserRole') == 'admin' ? true : false;
+    this.isAdmin = (sessionStorage.getItem('currentUserRole') == 'admin' || sessionStorage.getItem('currentUserRole') == 'assistant') ? true : false;
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
     this.fetchProducts();
   },
 };
