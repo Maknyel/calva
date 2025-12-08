@@ -29,6 +29,7 @@ export default {
       links: [
         { name: 'Dashboard', path: '/vue/dashboard' },
         { name: 'Point Of Sale', path: '/vue/point-of-sale' },
+        { name: 'Returns', path: '/vue/returns' },
       ],
     };
   },
@@ -40,6 +41,7 @@ export default {
         { name: 'Inventory', path: '/vue/inventory' },
         { name: 'Inventory In', path: '/vue/inventory-in' },
         { name: 'Point Of Sale', path: '/vue/point-of-sale' },
+        { name: 'Returns', path: '/vue/returns' },
         { name: 'Monitoring', path: '/vue/monitoring' },
         { name: 'Sales History', path: '/vue/sales-history' },
         { name: 'Inventory History', path: '/vue/inventory-history' },
@@ -60,6 +62,7 @@ export default {
         { name: 'Inventory', path: '/vue/inventory' },
         { name: 'Inventory In', path: '/vue/inventory-in' },
         { name: 'Point Of Sale', path: '/vue/point-of-sale' },
+        { name: 'Returns', path: '/vue/returns' },
         { name: 'Sales History', path: '/vue/sales-history' },
         { name: 'Inventory History', path: '/vue/inventory-history' },
         { name: 'Distributor', path: '/vue/distributor' },

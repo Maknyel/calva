@@ -38,6 +38,7 @@
           
           <th class="px-4 py-2">Price</th>
           <th class="px-4 py-2">Quantity</th>
+          <th class="px-4 py-2">Return</th>
           <th class="px-4 py-2">Total</th>
           <th class="px-4 py-2">Group</th>
           <th class="px-4 py-2">Date</th>
@@ -55,7 +56,8 @@
           <td v-if="isAdmin" class="px-4 py-2">&#8369; {{ item.sale_price_cost }}</td>
           <td class="px-4 py-2">&#8369; {{ item.cost_price_sold }}</td>
           <td class="px-4 py-2">{{ item.quantity_sold }}</td>
-          <td class="px-4 py-2">&#8369; {{ item.total }}</td>
+          <td class="px-4 py-2">{{ item.return_quantity }}</td>
+          <td class="px-4 py-2">&#8369; {{ item.total - (item.return_quantity * item.cost_price_sold) }}</td>
           <td class="px-4 py-2">{{ item.inventory_group ? item.inventory_group.id : '-' }}</td>
           <td class="px-4 py-2">{{ new Date(item.date_time_adjustment).toLocaleString() }}</td>
         </tr>

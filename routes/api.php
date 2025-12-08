@@ -14,7 +14,8 @@ use App\Http\Controllers\Api\{
     PosSaleController,
     CompanySettingController,
     InventoryGroupController,
-    MonitoringController
+    MonitoringController,
+    InventoryReturnController
 };
 
 /*
@@ -115,5 +116,12 @@ Route::get('/inventory-groups', [InventoryGroupController::class, 'index']);
 
 // Monitoring
 Route::get('/monitoring', [MonitoringController::class, 'getMonitoringData']);
+
+// Inventory Returns
+Route::get('/inventory-returns', [InventoryReturnController::class, 'index']);
+Route::post('/inventory-returns', [InventoryReturnController::class, 'store']);
+Route::get('/inventory-returns/{id}', [InventoryReturnController::class, 'show']);
+Route::delete('/inventory-returns/{id}', [InventoryReturnController::class, 'destroy']);
+Route::get('/inventory-in-history', [InventoryReturnController::class, 'getInventoryInHistory']);
 
 
