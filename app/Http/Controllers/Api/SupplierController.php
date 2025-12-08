@@ -30,6 +30,8 @@ class SupplierController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact_number' => 'nullable|string|max:50',
+            'email' => 'required|string|max:255',
+            'user_id'   => 'required|numeric'
         ]);
 
         $supplier = Supplier::create($validated);
@@ -44,6 +46,7 @@ class SupplierController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact_number' => 'nullable|string|max:50',
+            'email' => 'required|string|max:255',
         ]);
         $supplier->update($validated);
 

@@ -37,7 +37,7 @@
       </div>
 
       <!-- Sales Graph -->
-      <SalesGraph v-if="salesData.length > 0" :sales-data="salesData" />
+      <!-- <SalesGraph v-if="salesData.length > 0" :sales-data="salesData" /> -->
     </div>
   </div>
 </template>
@@ -56,7 +56,7 @@ export default {
       outOfStock: 0,
       expired: 0,
       categories: [],
-      salesData: [], // For SalesGraph
+      // salesData: [], // For SalesGraph
     };
   },
   methods: {
@@ -88,21 +88,21 @@ export default {
         console.error("Failed to fetch inventory stats:", error);
       }
     },
-    async fetchSalesData() {
-      try {
-        const res = await axios.get("/api/pos-sales"); // endpoint returning sales history
-        this.salesData = res.data.data.map(s => ({
-          date: s.date_time_adjustment,
-          total: s.grand_total_amount,
-        }));
-      } catch (error) {
-        console.error("Failed to fetch sales data:", error);
-      }
-    }
+    // async fetchSalesData() {
+    //   try {
+    //     const res = await axios.get("/api/pos-sales"); // endpoint returning sales history
+    //     this.salesData = res.data.data.map(s => ({
+    //       date: s.date_time_adjustment,
+    //       total: s.grand_total_amount,
+    //     }));
+    //   } catch (error) {
+    //     console.error("Failed to fetch sales data:", error);
+    //   }
+    // }
   },
   mounted() {
     this.fetchInventoryStats();
-    this.fetchSalesData();
+    // this.fetchSalesData();
   }
 };
 </script>

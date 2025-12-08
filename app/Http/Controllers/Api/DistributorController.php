@@ -30,6 +30,8 @@ class DistributorController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact_number' => 'nullable|string|max:50',
+            'email' => 'required|string|max:255',
+            'user_id'   => 'required|numeric'
         ]);
 
         $distributor = Distributor::create($validated);
@@ -44,6 +46,7 @@ class DistributorController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact_number' => 'nullable|string|max:50',
+            'email' => 'required|string|max:255',
         ]);
         $distributor->update($validated);
 

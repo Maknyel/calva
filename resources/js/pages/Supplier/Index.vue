@@ -26,6 +26,7 @@
         <h3 class="text-lg font-semibold mb-1">{{ supplier.name }}</h3>
         <p class="text-gray-500 mb-1">Address: {{ supplier.address }}</p>
         <p class="text-gray-500 mb-2">Contact: {{ supplier.contact_number }}</p>
+        <p class="text-gray-500 mb-2">Email: {{ supplier.email }}</p>
         <div class="flex space-x-2">
           <button
             @click="openModal(supplier)"
@@ -95,6 +96,13 @@
               class="w-full border rounded px-2 py-1 text-black"
             />
           </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-1">Email</label>
+            <input
+              v-model="form.email"
+              class="w-full border rounded px-2 py-1 text-black"
+            />
+          </div>
           <div class="flex justify-end space-x-2">
             <button
               type="button"
@@ -134,7 +142,9 @@ export default {
         name: '',
         address: '',
         contact_number: '',
+        email: ''
       },
+      userId: null,
     };
   },
   watch: {
@@ -147,6 +157,8 @@ export default {
     },
   },
   mounted() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
     this.fetchSuppliers();
   },
   methods: {
@@ -172,7 +184,7 @@ export default {
       if (supplier) {
         this.form = { ...supplier };
       } else {
-        this.form = { name: '', address: '', contact_number: '' };
+        this.form = { name: '', address: '', contact_number: '', email: '' };
       }
       this.showModal = true;
     },
@@ -188,7 +200,7 @@ export default {
           await axios.put(`/api/suppliers/${this.editingSupplier.id}`, this.form);
           this.$toast.success('Supplier updated successfully');
         } else {
-          await axios.post('/api/suppliers', this.form);
+          await axios.post('/api/suppliers', {...this.form, user_id: this.userId});
           this.$toast.success('Supplier added successfully');
         }
         this.fetchSuppliers();

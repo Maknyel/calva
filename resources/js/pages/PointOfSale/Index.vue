@@ -145,6 +145,19 @@
 
       <!-- Customer Information -->
       <div class="border-t pt-4">
+
+        
+        <h3 class="font-semibold text-gray-800 mb-3">Salesperson Information</h3>
+
+        <label class="block text-gray-700 text-sm font-medium mb-1">Salesperson Name</label>
+        <input
+          type="text"
+          v-model="created_by"
+          placeholder="Salesperson"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+
         <h3 class="font-semibold text-gray-800 mb-3">Customer Information</h3>
 
         <label class="block text-gray-700 text-sm font-medium mb-1">Customer Name</label>
@@ -236,6 +249,7 @@ export default {
   data() {
     return {
       userId: null,
+      created_by: '',
       searchQuery: "",
       products: [],
       cart: [],
@@ -323,6 +337,7 @@ export default {
             sale_price: i.sale_price, // send hidden sale price
           })),
           user_id: this.userId,
+          created_by: this.created_by,
           discount_percent: this.discountPercent,
           total: this.total,
           discounted_price: this.discountedPrice,
@@ -352,6 +367,7 @@ export default {
   mounted() {
     const user = JSON.parse(sessionStorage.getItem('user'));
     this.userId = user?.id;
+    this.created_by = ((user?.fname + " ") ?? "") + (user?.lname ?? "")
     this.fetchProducts();
   },
 };

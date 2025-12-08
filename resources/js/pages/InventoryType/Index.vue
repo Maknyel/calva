@@ -127,6 +127,7 @@ export default {
         name: '',
         description: '',
       },
+      userId: null,
     };
   },
   watch: {
@@ -139,6 +140,8 @@ export default {
     },
   },
   mounted() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
     this.fetchInventoryTypes();
   },
   methods: {
@@ -180,7 +183,7 @@ export default {
           await axios.put(`/api/inventory-types/${this.editingItem.id}`, this.form);
           this.$toast.success('Inventory type updated successfully');
         } else {
-          await axios.post('/api/inventory-types', this.form);
+          await axios.post('/api/inventory-types', {...this.form, user_id:this.userId});
           this.$toast.success('Inventory type added successfully');
         }
         this.fetchInventoryTypes();

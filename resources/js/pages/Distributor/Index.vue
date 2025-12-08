@@ -26,6 +26,8 @@
         <h3 class="text-lg font-semibold mb-1">{{ distributor.name }}</h3>
         <p class="text-gray-500 mb-1">Address: {{ distributor.address }}</p>
         <p class="text-gray-500 mb-2">Contact: {{ distributor.contact_number }}</p>
+        <p class="text-gray-500 mb-2">Email: {{ distributor.email }}</p>
+        
         <div class="flex space-x-2">
           <button
             @click="openModal(distributor)"
@@ -95,6 +97,15 @@
               class="w-full border rounded px-2 py-1 text-black"
             />
           </div>
+
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-1">Email</label>
+            <input
+              v-model="form.email"
+              class="w-full border rounded px-2 py-1 text-black"
+            />
+          </div>
+
           <div class="flex justify-end space-x-2">
             <button
               type="button"
@@ -134,7 +145,9 @@ export default {
         name: '',
         address: '',
         contact_number: '',
+        email: ''
       },
+      userId: null,
     };
   },
   watch: {
@@ -147,6 +160,8 @@ export default {
     },
   },
   mounted() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user?.id;
     this.fetchDistributor();
   },
   methods: {
@@ -172,7 +187,7 @@ export default {
       if (distributor) {
         this.form = { ...distributor };
       } else {
-        this.form = { name: '', address: '', contact_number: '' };
+        this.form = { name: '', address: '', contact_number: '', email: '' };
       }
       this.showModal = true;
     },
@@ -188,7 +203,7 @@ export default {
           await axios.put(`/api/distributors/${this.editingDistributor.id}`, this.form);
           this.$toast.success('Distributor updated successfully');
         } else {
-          await axios.post('/api/distributors', this.form);
+          await axios.post('/api/distributors', {...this.form, user_id: this.userId});
           this.$toast.success('Distributor added successfully');
         }
         this.fetchDistributor();

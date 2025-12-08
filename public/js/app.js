@@ -5960,8 +5960,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       inStock: 0,
       outOfStock: 0,
       expired: 0,
-      categories: [],
-      salesData: [] // For SalesGraph
+      categories: []
+      // salesData: [], // For SalesGraph
     };
   },
   methods: {
@@ -6014,42 +6014,21 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
           }
         }, _callee, null, [[0, 2]]);
       }))();
-    },
-    fetchSalesData: function fetchSalesData() {
-      var _this2 = this;
-      return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-        var res, _t2;
-        return _regenerator().w(function (_context2) {
-          while (1) switch (_context2.p = _context2.n) {
-            case 0:
-              _context2.p = 0;
-              _context2.n = 1;
-              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].get("/api/pos-sales");
-            case 1:
-              res = _context2.v;
-              // endpoint returning sales history
-              _this2.salesData = res.data.data.map(function (s) {
-                return {
-                  date: s.date_time_adjustment,
-                  total: s.grand_total_amount
-                };
-              });
-              _context2.n = 3;
-              break;
-            case 2:
-              _context2.p = 2;
-              _t2 = _context2.v;
-              console.error("Failed to fetch sales data:", _t2);
-            case 3:
-              return _context2.a(2);
-          }
-        }, _callee2, null, [[0, 2]]);
-      }))();
-    }
+    } // async fetchSalesData() {
+    //   try {
+    //     const res = await axios.get("/api/pos-sales"); // endpoint returning sales history
+    //     this.salesData = res.data.data.map(s => ({
+    //       date: s.date_time_adjustment,
+    //       total: s.grand_total_amount,
+    //     }));
+    //   } catch (error) {
+    //     console.error("Failed to fetch sales data:", error);
+    //   }
+    // }
   },
   mounted: function mounted() {
     this.fetchInventoryStats();
-    this.fetchSalesData();
+    // this.fetchSalesData();
   }
 });
 
@@ -6195,6 +6174,17 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
@@ -6211,8 +6201,10 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       form: {
         name: '',
         address: '',
-        contact_number: ''
-      }
+        contact_number: '',
+        email: ''
+      },
+      userId: null
     };
   },
   watch: {
@@ -6225,6 +6217,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchDistributor();
   },
   methods: {
@@ -6270,7 +6264,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
         this.form = {
           name: '',
           address: '',
-          contact_number: ''
+          contact_number: '',
+          email: ''
         };
       }
       this.showModal = true;
@@ -6299,7 +6294,9 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
               break;
             case 2:
               _context2.n = 3;
-              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/distributors', _this2.form);
+              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/distributors', _objectSpread(_objectSpread({}, _this2.form), {}, {
+                user_id: _this2.userId
+              }));
             case 3:
               _this2.$toast.success('Distributor added successfully');
             case 4:
@@ -7429,7 +7426,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       form: {
         name: '',
         description: ''
-      }
+      },
+      userId: null
     };
   },
   watch: {
@@ -7442,6 +7440,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchInventoryTypes();
   },
   methods: {
@@ -7515,7 +7515,9 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
               break;
             case 2:
               _context2.n = 3;
-              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/inventory-types', _this2.form);
+              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/inventory-types', _objectSpread(_objectSpread({}, _this2.form), {}, {
+                user_id: _this2.userId
+              }));
             case 3:
               _this2.$toast.success('Inventory type added successfully');
             case 4:
@@ -8361,6 +8363,19 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
@@ -8368,6 +8383,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
   data: function data() {
     return {
       userId: null,
+      created_by: '',
       searchQuery: "",
       products: [],
       cart: [],
@@ -8486,6 +8502,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
                   };
                 }),
                 user_id: _this3.userId,
+                created_by: _this3.created_by,
                 discount_percent: _this3.discountPercent,
                 total: _this3.total,
                 discounted_price: _this3.discountedPrice,
@@ -8523,8 +8540,10 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
+    var _ref, _user$lname;
     var user = JSON.parse(sessionStorage.getItem('user'));
     this.userId = user === null || user === void 0 ? void 0 : user.id;
+    this.created_by = ((_ref = (user === null || user === void 0 ? void 0 : user.fname) + " ") !== null && _ref !== void 0 ? _ref : "") + ((_user$lname = user === null || user === void 0 ? void 0 : user.lname) !== null && _user$lname !== void 0 ? _user$lname : "");
     this.fetchProducts();
   }
 });
@@ -8868,6 +8887,14 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
@@ -8884,8 +8911,10 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       form: {
         name: '',
         address: '',
-        contact_number: ''
-      }
+        contact_number: '',
+        email: ''
+      },
+      userId: null
     };
   },
   watch: {
@@ -8898,6 +8927,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     }
   },
   mounted: function mounted() {
+    var user = JSON.parse(sessionStorage.getItem('user'));
+    this.userId = user === null || user === void 0 ? void 0 : user.id;
     this.fetchSuppliers();
   },
   methods: {
@@ -8943,7 +8974,8 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
         this.form = {
           name: '',
           address: '',
-          contact_number: ''
+          contact_number: '',
+          email: ''
         };
       }
       this.showModal = true;
@@ -8972,7 +9004,9 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
               break;
             case 2:
               _context2.n = 3;
-              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/suppliers', _this2.form);
+              return axios__WEBPACK_IMPORTED_MODULE_0__["default"].post('/api/suppliers', _objectSpread(_objectSpread({}, _this2.form), {}, {
+                user_id: _this2.userId
+              }));
             case 3:
               _this2.$toast.success('Supplier added successfully');
             case 4:
@@ -25128,7 +25162,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -25176,7 +25210,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -25296,7 +25330,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\r\n/* optional styling */\r\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -27666,140 +27700,129 @@ var render = function () {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", { staticClass: "h-full flex flex-col" }, [
-    _c(
-      "div",
-      { staticClass: "flex-1 overflow-y-auto p-6 space-y-6" },
-      [
-        _c("h1", { staticClass: "text-3xl font-bold text-purple-700" }, [
-          _vm._v("Dashboard"),
-        ]),
-        _vm._v(" "),
-        _c(
-          "div",
-          {
-            staticClass: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-          },
-          [
-            _c(
-              "div",
-              {
-                staticClass:
-                  "bg-white shadow rounded p-4 flex flex-col items-center",
-              },
-              [
-                _c("span", { staticClass: "text-gray-500 text-sm" }, [
-                  _vm._v("Total Medicines"),
-                ]),
-                _vm._v(" "),
-                _c(
-                  "span",
-                  { staticClass: "text-3xl font-bold text-purple-700" },
-                  [_vm._v(_vm._s(_vm.totalMedicines))]
-                ),
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "div",
-              {
-                staticClass:
-                  "bg-white shadow rounded p-4 flex flex-col items-center",
-              },
-              [
-                _c("span", { staticClass: "text-gray-500 text-sm" }, [
-                  _vm._v("In Stock"),
-                ]),
-                _vm._v(" "),
-                _c(
-                  "span",
-                  { staticClass: "text-3xl font-bold text-purple-700" },
-                  [_vm._v(_vm._s(_vm.inStock))]
-                ),
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "div",
-              {
-                staticClass:
-                  "bg-white shadow rounded p-4 flex flex-col items-center",
-              },
-              [
-                _c("span", { staticClass: "text-gray-500 text-sm" }, [
-                  _vm._v("Out of Stock"),
-                ]),
-                _vm._v(" "),
-                _c(
-                  "span",
-                  { staticClass: "text-3xl font-bold text-purple-700" },
-                  [_vm._v(_vm._s(_vm.outOfStock))]
-                ),
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "div",
-              {
-                staticClass:
-                  "bg-white shadow rounded p-4 flex flex-col items-center",
-              },
-              [
-                _c("span", { staticClass: "text-gray-500 text-sm" }, [
-                  _vm._v("Expired"),
-                ]),
-                _vm._v(" "),
-                _c(
-                  "span",
-                  { staticClass: "text-3xl font-bold text-purple-700" },
-                  [_vm._v(_vm._s(_vm.expired))]
-                ),
-              ]
-            ),
-          ]
-        ),
-        _vm._v(" "),
-        _c("div", [
+    _c("div", { staticClass: "flex-1 overflow-y-auto p-6 space-y-6" }, [
+      _c("h1", { staticClass: "text-3xl font-bold text-purple-700" }, [
+        _vm._v("Dashboard"),
+      ]),
+      _vm._v(" "),
+      _c(
+        "div",
+        { staticClass: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" },
+        [
           _c(
-            "h2",
-            { staticClass: "text-xl font-semibold text-purple-700 mb-3" },
-            [_vm._v("Categories")]
+            "div",
+            {
+              staticClass:
+                "bg-white shadow rounded p-4 flex flex-col items-center",
+            },
+            [
+              _c("span", { staticClass: "text-gray-500 text-sm" }, [
+                _vm._v("Total Medicines"),
+              ]),
+              _vm._v(" "),
+              _c(
+                "span",
+                { staticClass: "text-3xl font-bold text-purple-700" },
+                [_vm._v(_vm._s(_vm.totalMedicines))]
+              ),
+            ]
           ),
           _vm._v(" "),
           _c(
             "div",
             {
               staticClass:
-                "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
+                "bg-white shadow rounded p-4 flex flex-col items-center",
             },
-            _vm._l(_vm.categories, function (category) {
-              return _c(
-                "div",
-                {
-                  key: category.id,
-                  staticClass:
-                    "bg-purple-50 text-purple-700 rounded shadow p-4 flex flex-col items-center hover:bg-purple-100 cursor-pointer transition-colors",
-                },
-                [
-                  _c("span", { staticClass: "font-semibold" }, [
-                    _vm._v(_vm._s(category.name)),
-                  ]),
-                  _vm._v(" "),
-                  _c("span", { staticClass: "text-sm text-gray-500" }, [
-                    _vm._v(_vm._s(category.count) + " items"),
-                  ]),
-                ]
-              )
-            }),
-            0
+            [
+              _c("span", { staticClass: "text-gray-500 text-sm" }, [
+                _vm._v("In Stock"),
+              ]),
+              _vm._v(" "),
+              _c(
+                "span",
+                { staticClass: "text-3xl font-bold text-purple-700" },
+                [_vm._v(_vm._s(_vm.inStock))]
+              ),
+            ]
           ),
-        ]),
+          _vm._v(" "),
+          _c(
+            "div",
+            {
+              staticClass:
+                "bg-white shadow rounded p-4 flex flex-col items-center",
+            },
+            [
+              _c("span", { staticClass: "text-gray-500 text-sm" }, [
+                _vm._v("Out of Stock"),
+              ]),
+              _vm._v(" "),
+              _c(
+                "span",
+                { staticClass: "text-3xl font-bold text-purple-700" },
+                [_vm._v(_vm._s(_vm.outOfStock))]
+              ),
+            ]
+          ),
+          _vm._v(" "),
+          _c(
+            "div",
+            {
+              staticClass:
+                "bg-white shadow rounded p-4 flex flex-col items-center",
+            },
+            [
+              _c("span", { staticClass: "text-gray-500 text-sm" }, [
+                _vm._v("Expired"),
+              ]),
+              _vm._v(" "),
+              _c(
+                "span",
+                { staticClass: "text-3xl font-bold text-purple-700" },
+                [_vm._v(_vm._s(_vm.expired))]
+              ),
+            ]
+          ),
+        ]
+      ),
+      _vm._v(" "),
+      _c("div", [
+        _c(
+          "h2",
+          { staticClass: "text-xl font-semibold text-purple-700 mb-3" },
+          [_vm._v("Categories")]
+        ),
         _vm._v(" "),
-        _vm.salesData.length > 0
-          ? _c("SalesGraph", { attrs: { "sales-data": _vm.salesData } })
-          : _vm._e(),
-      ],
-      1
-    ),
+        _c(
+          "div",
+          {
+            staticClass:
+              "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
+          },
+          _vm._l(_vm.categories, function (category) {
+            return _c(
+              "div",
+              {
+                key: category.id,
+                staticClass:
+                  "bg-purple-50 text-purple-700 rounded shadow p-4 flex flex-col items-center hover:bg-purple-100 cursor-pointer transition-colors",
+              },
+              [
+                _c("span", { staticClass: "font-semibold" }, [
+                  _vm._v(_vm._s(category.name)),
+                ]),
+                _vm._v(" "),
+                _c("span", { staticClass: "text-sm text-gray-500" }, [
+                  _vm._v(_vm._s(category.count) + " items"),
+                ]),
+              ]
+            )
+          }),
+          0
+        ),
+      ]),
+    ]),
   ])
 }
 var staticRenderFns = []
@@ -27886,6 +27909,10 @@ var render = function () {
             _vm._v(" "),
             _c("p", { staticClass: "text-gray-500 mb-2" }, [
               _vm._v("Contact: " + _vm._s(distributor.contact_number)),
+            ]),
+            _vm._v(" "),
+            _c("p", { staticClass: "text-gray-500 mb-2" }, [
+              _vm._v("Email: " + _vm._s(distributor.email)),
             ]),
             _vm._v(" "),
             _c("div", { staticClass: "flex space-x-2" }, [
@@ -28079,6 +28106,34 @@ var render = function () {
                               "contact_number",
                               $event.target.value
                             )
+                          },
+                        },
+                      }),
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "mb-4" }, [
+                      _c("label", { staticClass: "block text-gray-700 mb-1" }, [
+                        _vm._v("Email"),
+                      ]),
+                      _vm._v(" "),
+                      _c("input", {
+                        directives: [
+                          {
+                            name: "model",
+                            rawName: "v-model",
+                            value: _vm.form.email,
+                            expression: "form.email",
+                          },
+                        ],
+                        staticClass:
+                          "w-full border rounded px-2 py-1 text-black",
+                        domProps: { value: _vm.form.email },
+                        on: {
+                          input: function ($event) {
+                            if ($event.target.composing) {
+                              return
+                            }
+                            _vm.$set(_vm.form, "email", $event.target.value)
                           },
                         },
                       }),
@@ -31315,6 +31370,38 @@ var render = function () {
           _vm._v(" "),
           _c("div", { staticClass: "border-t pt-4" }, [
             _c("h3", { staticClass: "font-semibold text-gray-800 mb-3" }, [
+              _vm._v("Salesperson Information"),
+            ]),
+            _vm._v(" "),
+            _c(
+              "label",
+              { staticClass: "block text-gray-700 text-sm font-medium mb-1" },
+              [_vm._v("Salesperson Name")]
+            ),
+            _vm._v(" "),
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.created_by,
+                  expression: "created_by",
+                },
+              ],
+              staticClass: "w-full border rounded px-3 py-2 mb-3",
+              attrs: { type: "text", placeholder: "Salesperson" },
+              domProps: { value: _vm.created_by },
+              on: {
+                input: function ($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.created_by = $event.target.value
+                },
+              },
+            }),
+            _vm._v(" "),
+            _c("h3", { staticClass: "font-semibold text-gray-800 mb-3" }, [
               _vm._v("Customer Information"),
             ]),
             _vm._v(" "),
@@ -31984,6 +32071,10 @@ var render = function () {
               _vm._v("Contact: " + _vm._s(supplier.contact_number)),
             ]),
             _vm._v(" "),
+            _c("p", { staticClass: "text-gray-500 mb-2" }, [
+              _vm._v("Email: " + _vm._s(supplier.email)),
+            ]),
+            _vm._v(" "),
             _c("div", { staticClass: "flex space-x-2" }, [
               _c(
                 "button",
@@ -32173,6 +32264,34 @@ var render = function () {
                               "contact_number",
                               $event.target.value
                             )
+                          },
+                        },
+                      }),
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "mb-4" }, [
+                      _c("label", { staticClass: "block text-gray-700 mb-1" }, [
+                        _vm._v("Email"),
+                      ]),
+                      _vm._v(" "),
+                      _c("input", {
+                        directives: [
+                          {
+                            name: "model",
+                            rawName: "v-model",
+                            value: _vm.form.email,
+                            expression: "form.email",
+                          },
+                        ],
+                        staticClass:
+                          "w-full border rounded px-2 py-1 text-black",
+                        domProps: { value: _vm.form.email },
+                        on: {
+                          input: function ($event) {
+                            if ($event.target.composing) {
+                              return
+                            }
+                            _vm.$set(_vm.form, "email", $event.target.value)
                           },
                         },
                       }),

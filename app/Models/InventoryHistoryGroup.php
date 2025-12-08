@@ -21,6 +21,7 @@ class InventoryHistoryGroup extends Model
         'customer_phone',
         'payment_method',
         'amount_paid',
-        'user_id'
+        'user_id',
+        'created_by'
     ];
 }

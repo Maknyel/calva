@@ -8,5 +8,5 @@ class Distributor extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'address', 'contact_number'];
+    protected $fillable = ['name', 'address', 'contact_number', 'email', 'user_id'];
 }

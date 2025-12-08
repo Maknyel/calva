@@ -78,7 +78,8 @@ class InventoryInController extends Controller
             'customer_phone' => 'nullable|string|max:255',
             'payment_method' => 'nullable|string|max:255',
             'amount_paid' => 'nullable|numeric|min:0',
-            'user_id'   => 'required|numeric'
+            'user_id'   => 'required|numeric',
+            'created_by'    => 'nullable|string|max:255'
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -105,7 +106,9 @@ class InventoryInController extends Controller
                 'customer_phone' => $validated['customer_phone'] ?? null,
                 'payment_method' => $validated['payment_method'] ?? 'Cashless',
                 'amount_paid' => $validated['amount_paid'] ?? null,
-                'user_id'  => $validated['user_id']
+                'user_id'  => $validated['user_id'],
+                'created_by'  => $validated['created_by'],
+                
             ]);
 
             foreach ($validated['items'] as $item) {

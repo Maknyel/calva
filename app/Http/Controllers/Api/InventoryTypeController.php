@@ -27,6 +27,7 @@ class InventoryTypeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'user_id'   => 'required|numeric'
         ]);
 
         $item = InventoryType::create($validated);
