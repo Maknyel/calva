@@ -250,7 +250,6 @@
                 @if(company_phone()){{ company_phone() }}@endif
             </p>
             @endif
-            <p class="powered-by">Powered by {{ config('app.name', 'Laravel') }}</p>
         </div>
     </div>
 </body>

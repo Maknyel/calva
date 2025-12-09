@@ -43,15 +43,23 @@
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 30px;
+            line-height: 1.4;
         }
         .email-body {
             padding: 0 40px 40px 40px;
         }
         .message-section {
-            background-color: #f9fafb;
+            background-color: #faf5ff;
             border-radius: 8px;
             padding: 24px;
             margin-bottom: 20px;
+            border-left: 4px solid #7c3aed;
+        }
+        .message-label {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 12px;
+            font-weight: 500;
         }
         .message-content {
             color: #1f2937;
@@ -94,18 +102,25 @@
         <div class="email-header">
             <div class="logo">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="10" y="30" width="80" height="50" rx="5" fill="#2563eb" opacity="0.8"/>
-                    <rect x="20" y="20" width="60" height="50" rx="5" fill="#2563eb"/>
-                    <path d="M 30 45 L 40 55 L 60 35" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M30 25 L30 75 L45 75 C55 75 62 68 62 57.5 C62 50 57 45 50 45 L30 45 M30 45 L50 45 C57 45 62 40 62 32.5 C62 25 55 25 45 25 L30 25"
+                          stroke="url(#purpleGradient)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M65 35 L75 35 L70 50 L80 50" stroke="url(#purpleGradient)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            <h1 class="email-title">Message from {{ company_name() }}</h1>
+            <h1 class="email-title">{{ company_name() }} sent you a message with the following details:</h1>
         </div>
 
         <!-- Body -->
         <div class="email-body">
             <!-- Message Content -->
             <div class="message-section">
+                <div class="message-label">Message Content</div>
                 <div class="message-content">{{ $emailContent ?? 'No message content' }}</div>
             </div>
         </div>
@@ -123,7 +138,6 @@
                 @if(company_phone()){{ company_phone() }}@endif
             </p>
             @endif
-            <p class="powered-by">Powered by {{ config('app.name', 'Laravel') }}</p>
         </div>
     </div>
 </body>
