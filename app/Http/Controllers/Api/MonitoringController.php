@@ -27,7 +27,7 @@ class MonitoringController extends Controller
             ->select('inventory_group_id')
             ->selectRaw('SUM(cost_price_sold) as total_cost')
             ->selectRaw('SUM(sale_price_cost) as total_sales')
-            ->selectRaw('SUM(quantity_sold) as total_quantity')
+            ->selectRaw('SUM(COALESCE(quantity_sold, 0) - COALESCE(return_quantity, 0)) as total_quantity')
             ->selectRaw('MIN(date_time_adjustment) as order_date')
             ->groupBy('inventory_group_id')
             ->get()
@@ -61,7 +61,7 @@ class MonitoringController extends Controller
             ->select(
                 'inventory_id',
                 'name',
-                DB::raw('SUM(quantity_sold) as total_quantity_sold'),
+                DB::raw('SUM(COALESCE(quantity_sold, 0) - COALESCE(return_quantity, 0)) as total_quantity_sold'),
                 DB::raw('SUM(cost_price_sold) as total_cost_price'),
                 DB::raw('SUM(sale_price_cost) as total_sale_price'),
                 DB::raw('SUM(sale_price_cost - cost_price_sold) as profit')  // This is already correct: sales - cost
@@ -76,7 +76,7 @@ class MonitoringController extends Controller
             ->select(
                 DB::raw('DATE(date_time_adjustment) as sale_date'),
                 DB::raw('SUM(sale_price_cost) as total_sales'),
-                DB::raw('SUM(quantity_sold) as total_items_sold')
+                DB::raw('SUM(COALESCE(quantity_sold, 0) - COALESCE(return_quantity, 0)) as total_items_sold')
             )
             ->groupBy('sale_date')
             ->orderBy('sale_date')
@@ -90,7 +90,7 @@ class MonitoringController extends Controller
             ->select('inventory_group_id')
             ->selectRaw('SUM(cost_price_sold) as total_cost')
             ->selectRaw('SUM(sale_price_cost) as total_sales')
-            ->selectRaw('SUM(quantity_sold) as total_quantity')
+            ->selectRaw('SUM(COALESCE(quantity_sold, 0) - COALESCE(return_quantity, 0)) as total_quantity')
             ->selectRaw('MIN(date_time_adjustment) as order_date')
             ->groupBy('inventory_group_id')
             ->get()
@@ -172,7 +172,7 @@ class MonitoringController extends Controller
             ->select('inventory_group_id')
             ->selectRaw('SUM(cost_price_sold) as total_cost')
             ->selectRaw('SUM(sale_price_cost) as total_sales')
-            ->selectRaw('SUM(quantity_sold) as total_quantity')
+            ->selectRaw('SUM(COALESCE(quantity_sold, 0) - COALESCE(return_quantity, 0)) as total_quantity')
             ->selectRaw('MIN(date_time_adjustment) as order_date')
             ->groupBy('inventory_group_id')
             ->get()
