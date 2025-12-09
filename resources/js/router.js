@@ -18,6 +18,7 @@ import Users from '@pages/Users/Index.vue';
 import CompanySettings from '@pages/CompanySettings/Index.vue';
 import Monitoring from '@pages/Monitoring/Index.vue';
 import Returns from '@pages/Returns/Index.vue';
+import SendEmail from '@pages/SendEmail/Index.vue';
 
 const routes = [
   { path: '/vue/login', name: 'Login', component: Login },
@@ -33,7 +34,8 @@ const routes = [
   { path: '/vue/supplier', name: 'Supplier', component: Supplier },
   { path: '/vue/users', name: 'Users', component: Users },
   { path: '/vue/company-settings', name: 'CompanySettings', component: CompanySettings },
-  { path: '/vue/monitoring', name: 'Monitoring', component: Monitoring }
+  { path: '/vue/monitoring', name: 'Monitoring', component: Monitoring },
+  { path: '/vue/send-email', name: 'SendEmail', component: SendEmail }
 ];
 
 export default new VueRouter({

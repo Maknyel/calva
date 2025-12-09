@@ -147,7 +147,7 @@ if (!function_exists('send_email')) {
      * @param array|null $bcc BCC email addresses
      * @param string|null $fromEmail From email address (uses config if null)
      * @param string|null $fromName From name (uses company name if null)
-     * @return bool True if email sent successfully, false otherwise
+     * @return array Returns array with success status, message, and email details
      */
     function send_email(
         string $to,
@@ -158,7 +158,7 @@ if (!function_exists('send_email')) {
         ?array $bcc = null,
         ?string $fromEmail = null,
         ?string $fromName = null
-    ): bool {
+    ): array {
         try {
             // Set from email and name
             $fromEmail = $fromEmail ?? config('mail.from.address');
@@ -188,16 +188,29 @@ if (!function_exists('send_email')) {
                 }
             });
 
-            return true;
+            return [
+                'success' => true,
+                'message' => 'Email sent successfully',
+                'to' => $to,
+                'subject' => $subject,
+                'sent_at' => now()->toDateTimeString()
+            ];
         } catch (\Exception $e) {
             // Log the error
             \Illuminate\Support\Facades\Log::error('Email sending failed: ' . $e->getMessage(), [
                 'to' => $to,
                 'subject' => $subject,
-                'view' => $view
+                'view' => $view,
+                'error' => $e->getMessage()
             ]);
 
-            return false;
+            return [
+                'success' => false,
+                'message' => 'Email sending failed: ' . $e->getMessage(),
+                'to' => $to,
+                'subject' => $subject,
+                'error' => $e->getMessage()
+            ];
         }
     }
 }

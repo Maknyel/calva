@@ -48,6 +48,7 @@ export default {
         { name: 'Distributor', path: '/vue/distributor' },
         { name: 'Inventory Type', path: '/vue/inventory-type' },
         { name: 'Supplier', path: '/vue/supplier' },
+        { name: 'Send Email', path: '/vue/send-email' },
         { name: 'Users', path: '/vue/users' },
         { name: 'Company Settings', path: '/vue/company-settings' },
       ];
@@ -68,6 +69,7 @@ export default {
         { name: 'Distributor', path: '/vue/distributor' },
         { name: 'Inventory Type', path: '/vue/inventory-type' },
         { name: 'Supplier', path: '/vue/supplier' },
+        { name: 'Send Email', path: '/vue/send-email' },
       ];
 
     }
