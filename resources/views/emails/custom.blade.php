@@ -65,7 +65,70 @@
             color: #1f2937;
             font-size: 15px;
             line-height: 1.7;
-            white-space: pre-wrap;
+        }
+        .message-content p {
+            margin-bottom: 12px;
+        }
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin-top: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .message-content h1 {
+            font-size: 24px;
+        }
+        .message-content h2 {
+            font-size: 20px;
+        }
+        .message-content h3 {
+            font-size: 18px;
+        }
+        .message-content ul, .message-content ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+        .message-content li {
+            margin-bottom: 6px;
+        }
+        .message-content strong {
+            font-weight: 600;
+        }
+        .message-content em {
+            font-style: italic;
+        }
+        .message-content a {
+            color: #7c3aed;
+            text-decoration: underline;
+        }
+        .message-content blockquote {
+            border-left: 3px solid #7c3aed;
+            padding-left: 16px;
+            margin: 12px 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+        .message-content code {
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .message-content pre {
+            background-color: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .message-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 12px 0;
         }
         .divider {
             border: none;
@@ -121,7 +184,7 @@
             <!-- Message Content -->
             <div class="message-section">
                 <div class="message-label">Message Content</div>
-                <div class="message-content">{{ $emailContent ?? 'No message content' }}</div>
+                <div class="message-content">{!! $emailContent ?? 'No message content' !!}</div>
             </div>
         </div>
 

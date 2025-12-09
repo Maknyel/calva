@@ -7,14 +7,14 @@
     </div>
 
     <!-- Email Form -->
-    <div class="bg-white shadow rounded-lg p-6 max-w-2xl">
+    <div class="bg-white shadow rounded-lg p-6 max-w-4xl">
       <form @submit.prevent="sendEmail">
         <!-- Email Dropdown -->
         <div class="mb-4">
           <label class="block text-gray-700 mb-2 font-medium">Email</label>
           <select
             v-model="form.email"
-            class="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           >
             <option value="" disabled>Select an email</option>
@@ -34,22 +34,21 @@
           <input
             v-model="form.subject"
             type="text"
-            class="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
             placeholder="Enter email subject"
           />
         </div>
 
-        <!-- Message -->
+        <!-- Message with WYSIWYG Editor -->
         <div class="mb-6">
           <label class="block text-gray-700 mb-2 font-medium">Message</label>
-          <textarea
+          <quill-editor
             v-model="form.message"
-            class="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows="8"
-            required
-            placeholder="Enter your message here..."
-          ></textarea>
+            :options="editorOptions"
+            class="bg-white"
+            @ready="onEditorReady"
+          />
         </div>
 
         <!-- Submit Button -->
@@ -64,7 +63,7 @@
           <button
             type="submit"
             :disabled="loading"
-            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ loading ? 'Sending...' : 'Send Email' }}
           </button>
@@ -73,7 +72,7 @@
     </div>
 
     <!-- Success/Error Message -->
-    <div v-if="message" :class="messageClass" class="mt-4 p-4 rounded-lg max-w-2xl">
+    <div v-if="message" :class="messageClass" class="mt-4 p-4 rounded-lg max-w-4xl">
       {{ message }}
     </div>
   </div>
@@ -81,9 +80,16 @@
 
 <script>
 import axios from 'axios';
+import 'quill/dist/quill.core.css';
+import 'quill/dist/quill.snow.css';
+import 'quill/dist/quill.bubble.css';
+import { quillEditor } from 'vue-quill-editor';
 
 export default {
   name: 'SendEmail',
+  components: {
+    quillEditor
+  },
   data() {
     return {
       emails: [],
@@ -94,7 +100,29 @@ export default {
       },
       loading: false,
       message: '',
-      messageType: ''
+      messageType: '',
+      editorOptions: {
+        modules: {
+          toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'header': 1 }, { 'header': 2 }],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'script': 'sub'}, { 'script': 'super' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'direction': 'rtl' }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'font': [] }],
+            [{ 'align': [] }],
+            ['link', 'image'],
+            ['clean']
+          ]
+        },
+        placeholder: 'Enter your message here...',
+        theme: 'snow'
+      }
     };
   },
   computed: {
@@ -111,6 +139,10 @@ export default {
     this.fetchEmails();
   },
   methods: {
+    onEditorReady(editor) {
+      // Editor is ready
+      console.log('Editor ready:', editor);
+    },
     async fetchEmails() {
       try {
         const response = await axios.get('/api/emails/list');
@@ -125,6 +157,17 @@ export default {
     async sendEmail() {
       this.loading = true;
       this.message = '';
+
+      // Validate that message is not empty (excluding HTML tags)
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = this.form.message;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+      if (!textContent.trim()) {
+        this.showMessage('Please enter a message', 'error');
+        this.loading = false;
+        return;
+      }
 
       try {
         const response = await axios.post('/api/emails/send', this.form);
@@ -164,3 +207,30 @@ export default {
   }
 };
 </script>
+
+<style>
+/* Quill Editor Styles */
+.ql-container {
+  min-height: 300px;
+  font-size: 15px;
+}
+
+.ql-editor {
+  min-height: 300px;
+}
+
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.ql-container.ql-snow {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+</style>
