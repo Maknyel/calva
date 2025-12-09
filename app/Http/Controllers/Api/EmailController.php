@@ -43,7 +43,7 @@ class EmailController extends Controller
                 to: $validated['email'],
                 subject: $validated['subject'],
                 view: 'emails.custom',
-                data: ['message' => $validated['message']]
+                data: ['emailContent' => $validated['message']]
             );
 
             if ($result['success']) {

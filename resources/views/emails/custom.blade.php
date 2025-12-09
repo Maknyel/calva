@@ -106,7 +106,7 @@
         <div class="email-body">
             <!-- Message Content -->
             <div class="message-section">
-                <div class="message-content">{{ $message ?? 'No message content' }}</div>
+                <div class="message-content">{{ $emailContent ?? 'No message content' }}</div>
             </div>
         </div>
 
