@@ -39,11 +39,14 @@ class EmailController extends Controller
         ]);
 
         try {
+            // Process base64 images - remove them or convert to text
+            $processedMessage = $this->processBase64Images($validated['message']);
+
             $result = send_email(
                 to: $validated['email'],
                 subject: $validated['subject'],
                 view: 'emails.custom',
-                data: ['emailContent' => $validated['message']]
+                data: ['emailContent' => $processedMessage]
             );
 
             if ($result['success']) {
@@ -65,5 +68,24 @@ class EmailController extends Controller
                 'message' => 'Error sending email: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Process base64 encoded images in the message
+     * Removes base64 images and replaces with a placeholder or removes them entirely
+     */
+    private function processBase64Images($message)
+    {
+        // Remove base64 encoded images from img tags
+        $pattern = '/<img[^>]+src="data:image\/[^;]+;base64[^"]*"[^>]*>/i';
+
+        // Replace with a notice that images are not supported
+        $replacement = '<div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin: 12px 0; color: #92400e; font-size: 14px;">
+            <strong>Note:</strong> Inline images are not supported in emails. Please use image URLs instead.
+        </div>';
+
+        $processedMessage = preg_replace($pattern, $replacement, $message);
+
+        return $processedMessage;
     }
 }

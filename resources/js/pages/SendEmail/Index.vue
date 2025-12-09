@@ -43,6 +43,9 @@
         <!-- Message with WYSIWYG Editor -->
         <div class="mb-6">
           <label class="block text-gray-700 mb-2 font-medium">Message</label>
+          <div class="mb-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-3">
+            <strong>Tip:</strong> Use the link icon (🔗) to insert images by URL instead of uploading files directly.
+          </div>
           <quill-editor
             v-model="form.message"
             :options="editorOptions"
@@ -101,24 +104,26 @@ export default {
       loading: false,
       message: '',
       messageType: '',
+      quillInstance: null,
       editorOptions: {
         modules: {
-          toolbar: [
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote', 'code-block'],
-            [{ 'header': 1 }, { 'header': 2 }],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'script': 'sub'}, { 'script': 'super' }],
-            [{ 'indent': '-1'}, { 'indent': '+1' }],
-            [{ 'direction': 'rtl' }],
-            [{ 'size': ['small', false, 'large', 'huge'] }],
-            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'font': [] }],
-            [{ 'align': [] }],
-            ['link', 'image'],
-            ['clean']
-          ]
+          toolbar: {
+            container: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'script': 'sub'}, { 'script': 'super' }],
+              [{ 'indent': '-1'}, { 'indent': '+1' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['link', 'image'],
+              ['clean']
+            ]
+          }
         },
         placeholder: 'Enter your message here...',
         theme: 'snow'
@@ -139,9 +144,22 @@ export default {
     this.fetchEmails();
   },
   methods: {
-    onEditorReady(editor) {
-      // Editor is ready
-      console.log('Editor ready:', editor);
+    onEditorReady(quill) {
+      // Store quill instance
+      this.quillInstance = quill;
+
+      // Override the image handler
+      const toolbar = quill.getModule('toolbar');
+      toolbar.addHandler('image', this.imageHandler);
+    },
+    imageHandler() {
+      // Prompt user for image URL
+      const url = prompt('Enter the image URL:');
+
+      if (url) {
+        const range = this.quillInstance.getSelection();
+        this.quillInstance.insertEmbed(range.index, 'image', url);
+      }
     },
     async fetchEmails() {
       try {

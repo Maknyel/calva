@@ -9249,6 +9249,9 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 //
 //
 //
+//
+//
+//
 
 
 
@@ -9271,39 +9274,40 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
       loading: false,
       message: '',
       messageType: '',
+      quillInstance: null,
       editorOptions: {
         modules: {
-          toolbar: [['bold', 'italic', 'underline', 'strike'], ['blockquote', 'code-block'], [{
-            'header': 1
-          }, {
-            'header': 2
-          }], [{
-            'list': 'ordered'
-          }, {
-            'list': 'bullet'
-          }], [{
-            'script': 'sub'
-          }, {
-            'script': 'super'
-          }], [{
-            'indent': '-1'
-          }, {
-            'indent': '+1'
-          }], [{
-            'direction': 'rtl'
-          }], [{
-            'size': ['small', false, 'large', 'huge']
-          }], [{
-            'header': [1, 2, 3, 4, 5, 6, false]
-          }], [{
-            'color': []
-          }, {
-            'background': []
-          }], [{
-            'font': []
-          }], [{
-            'align': []
-          }], ['link', 'image'], ['clean']]
+          toolbar: {
+            container: [['bold', 'italic', 'underline', 'strike'], ['blockquote', 'code-block'], [{
+              'header': 1
+            }, {
+              'header': 2
+            }], [{
+              'list': 'ordered'
+            }, {
+              'list': 'bullet'
+            }], [{
+              'script': 'sub'
+            }, {
+              'script': 'super'
+            }], [{
+              'indent': '-1'
+            }, {
+              'indent': '+1'
+            }], [{
+              'size': ['small', false, 'large', 'huge']
+            }], [{
+              'header': [1, 2, 3, 4, 5, 6, false]
+            }], [{
+              'color': []
+            }, {
+              'background': []
+            }], [{
+              'font': []
+            }], [{
+              'align': []
+            }], ['link', 'image'], ['clean']]
+          }
         },
         placeholder: 'Enter your message here...',
         theme: 'snow'
@@ -9324,9 +9328,21 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
     this.fetchEmails();
   },
   methods: {
-    onEditorReady: function onEditorReady(editor) {
-      // Editor is ready
-      console.log('Editor ready:', editor);
+    onEditorReady: function onEditorReady(quill) {
+      // Store quill instance
+      this.quillInstance = quill;
+
+      // Override the image handler
+      var toolbar = quill.getModule('toolbar');
+      toolbar.addHandler('image', this.imageHandler);
+    },
+    imageHandler: function imageHandler() {
+      // Prompt user for image URL
+      var url = prompt('Enter the image URL:');
+      if (url) {
+        var range = this.quillInstance.getSelection();
+        this.quillInstance.insertEmbed(range.index, 'image', url);
+      }
     },
     fetchEmails: function fetchEmails() {
       var _this = this;
@@ -26109,7 +26125,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Quill Editor Styles */\n.ql-container {\n  min-height: 300px;\n  font-size: 15px;\n}\n.ql-editor {\n  min-height: 300px;\n}\n.ql-toolbar.ql-snow {\n  border-top-left-radius: 0.375rem;\n  border-top-right-radius: 0.375rem;\n}\n.ql-container.ql-snow {\n  border-bottom-left-radius: 0.375rem;\n  border-bottom-right-radius: 0.375rem;\n}\n.ql-editor.ql-blank::before {\n  color: #9ca3af;\n  font-style: normal;\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Quill Editor Styles */\n.ql-container {\n  min-height: 300px;\n  font-size: 15px;\n}\n.ql-editor {\n  min-height: 300px;\n}\n.ql-toolbar.ql-snow {\n  border-top-left-radius: 0.375rem;\n  border-top-right-radius: 0.375rem;\n}\n.ql-container.ql-snow {\n  border-bottom-left-radius: 0.375rem;\n  border-bottom-right-radius: 0.375rem;\n}\n.ql-editor.ql-blank::before {\n  color: #9ca3af;\n  font-style: normal;\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -33787,6 +33803,8 @@ var render = function () {
                 [_vm._v("Message")]
               ),
               _vm._v(" "),
+              _vm._m(1),
+              _vm._v(" "),
               _c("quill-editor", {
                 staticClass: "bg-white",
                 attrs: { options: _vm.editorOptions },
@@ -33861,6 +33879,24 @@ var staticRenderFns = [
         _vm._v("Send custom emails to distributors and suppliers"),
       ]),
     ])
+  },
+  function () {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "div",
+      {
+        staticClass:
+          "mb-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-3",
+      },
+      [
+        _c("strong", [_vm._v("Tip:")]),
+        _vm._v(
+          " Use the link icon (🔗) to insert images by URL instead of uploading files directly.\n        "
+        ),
+      ]
+    )
   },
 ]
 render._withStripped = true
