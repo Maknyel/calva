@@ -1,20 +1,16 @@
 #include <ESP32Servo.h>
-#include <TinyGPS++.h>
 
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
 #define RELAY_PIN    26
 #define SERVO_PIN    14
-#define SIM800_RX    16
-#define SIM800_TX    17
-#define GPS_RX       18
-#define GPS_TX       19
+#define A7670E_RX    16  // ESP32 RX ← A7670E TX
+#define A7670E_TX    17  // ESP32 TX → A7670E RX
+#define A7670E_PWR   25  // Power key pin
 
-// ===== SERIAL PORTS =====
-HardwareSerial sim800(1);
-HardwareSerial gpsSerial(2);
+// ===== SERIAL PORT =====
+HardwareSerial a7670e(1);  // Using Serial1 for A7670E
 Servo myServo;
-TinyGPSPlus gps;
 
 // ===== CONFIGURATION =====
 String phoneNumber = "+639070653250";
@@ -32,159 +28,282 @@ const unsigned long PUMP_DURATION = 10000;  // 10 seconds
 // ===== GPS LOCATION VARIABLES =====
 String latStr = "";
 String lngStr = "";
+String timeStr = "";
 
-// ===== HELPER FUNCTION: Wait for SIM800L response =====
-void waitForResponse(int timeout = 2000) {
+// ===== HELPER FUNCTION: Wait for A7670E response =====
+String waitForResponse(int timeout = 2000) {
+  String response = "";
   unsigned long start = millis();
   while (millis() - start < timeout) {
-    while (sim800.available()) {
-      Serial.write(sim800.read());
+    while (a7670e.available()) {
+      char c = a7670e.read();
+      response += c;
+      Serial.write(c);
     }
   }
   Serial.println();
+  return response;
 }
 
-// ===== GET CURRENT TIME STRING =====
-String getCurrentTime() {
-  // If GPS has valid time, use it and convert to Philippine Time (UTC+8)
-  if (gps.time.isValid() && gps.date.isValid()) {
-    // GPS provides UTC time, add 8 hours for Philippine Time
-    int hour = gps.time.hour() + 8;
-    int day = gps.date.day();
-    int month = gps.date.month();
-    int year = gps.date.year();
-    
-    // Handle day rollover
-    if (hour >= 24) {
-      hour -= 24;
-      day += 1;
+// ===== GET PHILIPPINE TIME FROM NETWORK =====
+String getPhilippineTime() {
+  Serial.println("⏰ Getting network time...");
+  a7670e.println("AT+CCLK?");
+  String timeResponse = waitForResponse(2000);
+  
+  // Parse AT+CCLK response: +CCLK: "24/01/25,15:30:45+32"
+  // Format: YY/MM/DD,HH:MM:SS+TZ
+  int timeIdx = timeResponse.indexOf("+CCLK: \"");
+  if (timeIdx >= 0) {
+    String datetime = timeResponse.substring(timeIdx + 8);
+    // Find the closing quote
+    int endQuote = datetime.indexOf("\"");
+    if (endQuote > 0) {
+      datetime = datetime.substring(0, endQuote);
+      // datetime should be like: 24/01/25,15:30:45+32
       
-      // Days in each month (non-leap year)
-      int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-      
-      // Check for leap year
-      if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
-        daysInMonth[1] = 29;  // February has 29 days in leap year
-      }
-      
-      // Handle month rollover
-      if (day > daysInMonth[month - 1]) {
-        day = 1;
-        month += 1;
+      // Extract date and time parts
+      int commaPos = datetime.indexOf(',');
+      if (commaPos > 0) {
+        String date = datetime.substring(0, commaPos);  // YY/MM/DD
+        String time = datetime.substring(commaPos + 1); // HH:MM:SS+TZ
         
-        // Handle year rollover
-        if (month > 12) {
-          month = 1;
-          year += 1;
+        // Remove timezone part
+        int plusPos = time.indexOf('+');
+        if (plusPos > 0) {
+          time = time.substring(0, plusPos);
         }
+        
+        // Format: Jan 25, 2024 15:30:45
+        String year = "20" + date.substring(0, 2);
+        String month = date.substring(3, 5);
+        String day = date.substring(6, 8);
+        
+        // Convert month number to name
+        String monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        int monthNum = month.toInt() - 1;
+        String monthName = (monthNum >= 0 && monthNum < 12) ? monthNames[monthNum] : month;
+        
+        return monthName + " " + day + ", " + year + " " + time + " PHT";
       }
     }
-    
-    char timeStr[40];
-    sprintf(timeStr, "%02d/%02d/%04d %02d:%02d:%02d PHT", 
-            month, day, year, hour, gps.time.minute(), gps.time.second());
-    return String(timeStr);
-  } else {
-    // Use system uptime as fallback
-    unsigned long seconds = detectionTime / 1000;
-    unsigned long minutes = seconds / 60;
-    unsigned long hours = minutes / 60;
-    char timeStr[30];
-    sprintf(timeStr, "Uptime: %02luh:%02lum:%02lus", 
-            hours, minutes % 60, seconds % 60);
-    return String(timeStr);
   }
+  
+  // Fallback: return current date/time manually
+  Serial.println("⚠️ Could not get network time, using manual timestamp");
+  return "Jan 25, 2025 [Time unavailable] PHT";
 }
+
+// ===== POWER ON A7670E MODULE =====
+void powerOnA7670E() {
+  Serial.println("🔌 Powering on A7670E module...");
+  pinMode(A7670E_PWR, OUTPUT);
+  
+  // Power on sequence: pull low for 1 second
+  digitalWrite(A7670E_PWR, HIGH);
+  delay(500);
+  digitalWrite(A7670E_PWR, LOW);
+  delay(1000);
+  digitalWrite(A7670E_PWR, HIGH);
+  delay(2000);
+  
+  Serial.println("⏳ Waiting for module to boot...");
+  delay(5000);  // Wait for module to fully boot
+}
+
+// ===== GET GPS LOCATION =====
+bool getGPSLocation() {
+  Serial.println("\n🛰️ Getting GNSS location...");
+
+  a7670e.println("AT+CGNSPWR=1");
+  String r1 = waitForResponse(2000);
+  if (r1.indexOf("ERROR") >= 0) {
+    Serial.println("❌ GNSS not supported (AT+CGNSPWR=1 returned ERROR).");
+    Serial.println("👉 Your A7670E board likely has NO GPS. You need an external GPS module (NEO-6M/M8N).");
+    return false;
+  }
+
+  // Try multiple times to get a fix
+  for (int i = 0; i < 30; i++) {
+    Serial.printf("GNSS attempt %d/30...\n", i + 1);
+
+    a7670e.println("AT+CGNSINF");
+    String resp = waitForResponse(2000);
+
+    int p = resp.indexOf("+CGNSINF:");
+    if (p < 0) { delay(1000); continue; }
+
+    // Example +CGNSINF: 1,1,20240124071530.000,14.5995,120.9842,....
+    String line = resp.substring(p);
+    int colon = line.indexOf(':');
+    if (colon < 0) { delay(1000); continue; }
+
+    String data = line.substring(colon + 1);
+    data.trim();
+
+    // split by commas (very basic)
+    int idx1 = data.indexOf(',');                  // run status
+    int idx2 = data.indexOf(',', idx1 + 1);        // fix status
+    int idx3 = data.indexOf(',', idx2 + 1);        // UTC
+    int idx4 = data.indexOf(',', idx3 + 1);        // lat
+    int idx5 = data.indexOf(',', idx4 + 1);        // lon
+
+    if (idx5 < 0) { delay(1000); continue; }
+
+    String runStatus = data.substring(0, idx1);                 runStatus.trim();
+    String fixStatus = data.substring(idx1 + 1, idx2);          fixStatus.trim();
+    String utc       = data.substring(idx2 + 1, idx3);          utc.trim();
+    String lat       = data.substring(idx3 + 1, idx4);          lat.trim();
+    String lon       = data.substring(idx4 + 1, idx5);          lon.trim();
+
+    if (fixStatus == "1" && lat.length() > 0 && lon.length() > 0 && lat != "0.0" && lon != "0.0") {
+      latStr = lat;
+      lngStr = lon;
+
+      Serial.println("✅ GNSS FIX!");
+      Serial.println("Lat: " + latStr);
+      Serial.println("Lon: " + lngStr);
+      return true;
+    }
+
+    Serial.println("No fix yet...");
+    delay(2000);
+  }
+
+  Serial.println("❌ No GNSS fix after attempts.");
+  return false;
+}
+
 
 // ===== SEND SMS =====
 void sendSMS(String msg) {
   Serial.println("\n➡️ Sending SMS...");
   
   // Clear any pending data
-  while (sim800.available()) {
-    sim800.read();
+  delay(500);
+  while (a7670e.available()) {
+    a7670e.read();
   }
+  delay(500);
   
   Serial.print("AT: ");
-  sim800.println("AT");
+  a7670e.print("AT\r\n");
+  delay(500);
   waitForResponse(1000);
   
   Serial.print("Set text mode: ");
-  sim800.println("AT+CMGF=1");
+  a7670e.print("AT+CMGF=1\r\n");
+  delay(500);
   waitForResponse(1000);
   
-  // Use IRA character set (simpler than GSM)
   Serial.print("Character set: ");
-  sim800.println("AT+CSCS=\"IRA\"");
+  a7670e.print("AT+CSCS=\"GSM\"\r\n");
+  delay(500);
   waitForResponse(1000);
   
   Serial.print("Signal: ");
-  sim800.println("AT+CSQ");
+  a7670e.print("AT+CSQ\r\n");
+  delay(500);
   waitForResponse(1000);
   
   Serial.print("Network: ");
-  sim800.println("AT+CREG?");
+  a7670e.print("AT+CREG?\r\n");
+  delay(500);
   waitForResponse(2000);
   
-  Serial.println("Sending SMS to: " + phoneNumber);
-  sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
-  delay(2000);  // Increased delay
+  // Clear buffer again before sending SMS command
+  while (a7670e.available()) {
+    a7670e.read();
+  }
+  delay(500);
+  
+  Serial.println("\nSending SMS to: " + phoneNumber);
+  Serial.println("Command: AT+CMGS=\"" + phoneNumber + "\"");
+  
+  // Send SMS command character by character to avoid buffer issues
+  a7670e.print("AT+CMGS=\"");
+  delay(100);
+  a7670e.print(phoneNumber);
+  delay(100);
+  a7670e.print("\"\r\n");
+  
+  Serial.println("Waiting for '>' prompt...");
+  delay(2000);
   
   // Check for '>' prompt
   bool promptReceived = false;
+  String promptResponse = "";
   unsigned long promptWait = millis();
-  while (millis() - promptWait < 3000) {
-    if (sim800.available()) {
-      char c = sim800.read();
+  
+  while (millis() - promptWait < 5000) {  // Increased timeout
+    if (a7670e.available()) {
+      char c = a7670e.read();
       Serial.write(c);
+      promptResponse += c;
+      
       if (c == '>') {
         promptReceived = true;
+        Serial.println("\n✅ Prompt '>' received!");
         break;
       }
     }
+    delay(10);
   }
   
   if (!promptReceived) {
-    Serial.println("\n❌ No prompt received! Aborting SMS.");
-    sim800.write(27);  // Send ESC to cancel
+    Serial.println("\n❌ No prompt received!");
+    Serial.println("Response was: " + promptResponse);
+    Serial.println("Aborting SMS...");
+    a7670e.write(27);  // Send ESC to cancel
+    delay(500);
     return;
   }
   
-  Serial.println("\n✅ Prompt received, sending message...");
+  delay(500);
+  Serial.println("Sending message content...");
   
-  // Send message character by character with small delay
+  // Send message character by character
   for (unsigned int i = 0; i < msg.length(); i++) {
-    sim800.write(msg[i]);
+    a7670e.write(msg[i]);
+    Serial.write(msg[i]);
     delay(10);  // Small delay between characters
   }
   
   delay(500);
   
   // Send Ctrl+Z to finish
-  sim800.write(26);
-  Serial.println("\n📤 Waiting for SMS delivery...");
+  Serial.println("\n\nSending Ctrl+Z...");
+  a7670e.write(26);
+  
+  Serial.println("📤 Waiting for SMS delivery confirmation...");
   
   // Wait for response
   String response = "";
   unsigned long sendStart = millis();
-  while (millis() - sendStart < 20000) {  // Increased timeout
-    while (sim800.available()) {
-      char c = sim800.read();
+  
+  while (millis() - sendStart < 30000) {  // 30 second timeout
+    while (a7670e.available()) {
+      char c = a7670e.read();
       response += c;
       Serial.write(c);
     }
     
     // Check if SMS was sent successfully
     if (response.indexOf("+CMGS:") >= 0) {
-      Serial.println("\n✅ SMS SENT SUCCESSFULLY!");
+      Serial.println("\n\n✅ SMS SENT SUCCESSFULLY!");
       return;
     } else if (response.indexOf("ERROR") >= 0) {
-      Serial.println("\n❌ SMS FAILED!");
+      Serial.println("\n\n❌ SMS FAILED - Error from module!");
+      Serial.println("Response: " + response);
       return;
     }
+    
+    delay(100);
   }
   
-  Serial.println("\n⚠️ SMS status unknown (timeout)");
+  Serial.println("\n⚠️ SMS status unknown (timeout after 30s)");
+  Serial.println("Last response: " + response);
 }
 
 // ===== SETUP =====
@@ -196,85 +315,41 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("\n\n========================================");
-  Serial.println("  FLOOD DETECTION SYSTEM + GPS");
+  Serial.println("  FLOOD DETECTION SYSTEM + A7670E");
   Serial.println("========================================\n");
   
-  // Initialize GPS Module
-  Serial.println("🛰️ Initializing GPS...");
-  gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-  delay(1000);
+  // Power on A7670E
+  powerOnA7670E();
   
-  // Test GPS data flow
-  Serial.println("📡 Testing GPS connection...");
-  unsigned long gpsTest = millis();
-  int charCount = 0;
-  while (millis() - gpsTest < 3000) {
-    while (gpsSerial.available()) {
-      char c = gpsSerial.read();
-      charCount++;
-      gps.encode(c);
-      if (charCount < 50) {
-        Serial.write(c);
-      }
-    }
-  }
-  
-  Serial.println();
-  if (charCount > 0) {
-    Serial.print("✅ GPS module responding: ");
-    Serial.print(charCount);
-    Serial.println(" chars received");
-    Serial.print("   Satellites detected: ");
-    Serial.println(gps.satellites.value());
-  } else {
-    Serial.println("❌ NO GPS DATA!");
-    Serial.println("   Check wiring:");
-    Serial.println("   GPS TX → ESP32 GPIO18");
-    Serial.println("   GPS RX → ESP32 GPIO19");
-    Serial.println("   GPS VCC → 3.3V or 5V");
-    Serial.println("   GPS GND → GND");
-  }
-  
-  Serial.println("\n⚠️ IMPORTANT GPS NOTES:");
-  Serial.println("   • GPS needs CLEAR SKY VIEW");
-  Serial.println("   • Won't work indoors");
-  Serial.println("   • First fix takes 1-5 minutes outdoors");
-  Serial.println("   • Keep antenna facing UP\n");
-  
-  // Initialize SIM800L
-  Serial.println("📡 Initializing SIM800L...");
-  sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
-  delay(5000);
+  // Initialize A7670E Module
+  Serial.println("📡 Initializing A7670E...");
+  a7670e.begin(115200, SERIAL_8N1, A7670E_RX, A7670E_TX);
+  delay(2000);
   
   Serial.print("Testing module: ");
-  sim800.println("AT");
+  a7670e.println("AT");
   waitForResponse(2000);
   
   Serial.print("Disable echo: ");
-  sim800.println("ATE0");
+  a7670e.println("ATE0");
   waitForResponse(1000);
   
+  Serial.print("Module info: ");
+  a7670e.println("ATI");
+  waitForResponse(2000);
+  
   Serial.print("Checking SIM card: ");
-  sim800.println("AT+CPIN?");
+  a7670e.println("AT+CPIN?");
   waitForResponse(2000);
   
   Serial.println("\n⏳ Waiting for network registration...");
   bool registered = false;
   
   for (int i = 0; i < 40; i++) {
-    sim800.println("AT+CREG?");
+    a7670e.println("AT+CREG?");
     delay(500);
     
-    String response = "";
-    unsigned long start = millis();
-    while (millis() - start < 1000) {
-      while (sim800.available()) {
-        char c = sim800.read();
-        response += c;
-        Serial.write(c);
-      }
-    }
-    Serial.println();
+    String response = waitForResponse(1000);
     
     if (response.indexOf("+CREG: 0,1") >= 0 || 
         response.indexOf("+CREG: 0,5") >= 0) {
@@ -294,13 +369,50 @@ void setup() {
   
   if (!registered) {
     Serial.println("⚠️ Network registration timeout");
-    Serial.println("   Check: SIM card inserted, has credit, no PIN");
+    Serial.println("   Check: SIM card inserted, has credit, antenna connected");
   }
   
   Serial.print("\n📶 Signal strength: ");
-  sim800.println("AT+CSQ");
+  a7670e.print("AT+CSQ\r\n");
   waitForResponse(2000);
   Serial.println("   (Good signal: +CSQ: 10-31,0)");
+  
+  // Additional SMS setup checks
+  Serial.println("\n📱 SMS Configuration Checks:");
+  
+  Serial.print("SMS service center: ");
+  a7670e.print("AT+CSCA?\r\n");
+  waitForResponse(2000);
+  
+  Serial.print("Preferred message storage: ");
+  a7670e.print("AT+CPMS=\"SM\",\"SM\",\"SM\"\r\n");
+  waitForResponse(2000);
+  
+  Serial.print("SMS text mode: ");
+  a7670e.print("AT+CMGF=1\r\n");
+  waitForResponse(1000);
+  
+  Serial.print("Character set to GSM: ");
+  a7670e.print("AT+CSCS=\"GSM\"\r\n");
+  waitForResponse(1000);
+  
+  Serial.println("\n💡 TROUBLESHOOTING TIPS:");
+  Serial.println("   If SMS fails:");
+  Serial.println("   1. Check signal strength (should be 10-31)");
+  Serial.println("   2. Verify SIM has SMS credit/capability");
+  Serial.println("   3. Test with AT+CMGS manually via Serial Monitor");
+  Serial.println("   4. Some SIMs need service center number configured");
+  
+  // Test GPS
+  Serial.println("\n🛰️ Testing GPS...");
+  Serial.print("Enabling GPS: ");
+  a7670e.println("AT+CGPS=1");
+  waitForResponse(2000);
+  
+  Serial.println("\n⚠️ GPS NOTES:");
+  Serial.println("   • Needs clear sky view (won't work indoors)");
+  Serial.println("   • First fix takes 1-5 minutes outdoors");
+  Serial.println("   • GPS antenna must be connected properly");
   
   // Initialize Servo
   Serial.println("\n🔧 Initializing servo...");
@@ -317,43 +429,13 @@ void setup() {
 
 // ===== LOOP =====
 void loop() {
-  // Feed GPS data continuously
-  while (gpsSerial.available() > 0) {
-    gps.encode(gpsSerial.read());
-  }
-  
   int waterDetected = digitalRead(WATER_SENSOR);
   
-  // Status update every 5 seconds (only when not triggered)
+  // Status update every 10 seconds (only when not triggered)
   static unsigned long lastPrint = 0;
-  if (!triggered && millis() - lastPrint > 5000) {
+  if (!triggered && millis() - lastPrint > 10000) {
     Serial.print("💧 Water: ");
-    Serial.print(waterDetected == HIGH ? "⚠️ DETECTED" : "Normal");
-    
-    Serial.print(" | 🛰️ GPS: ");
-    if (gps.location.isValid()) {
-      Serial.print("✅ FIX (");
-      latStr = String(gps.location.lat(), 4);
-      lngStr = String(gps.location.lng(), 4);
-      Serial.print(latStr);
-      Serial.print(", ");
-      Serial.print(lngStr);
-      Serial.print(") - ");
-      Serial.print(gps.satellites.value());
-      Serial.print(" sats");
-    } else {
-      if (gps.satellites.value() > 0) {
-        Serial.print("🔍 ");
-        Serial.print(gps.satellites.value());
-        Serial.print(" sats visible, acquiring fix...");
-      } else {
-        Serial.print("❌ No satellites (");
-        Serial.print(gps.charsProcessed());
-        Serial.print(" chars)");
-      }
-    }
-    Serial.println();
-    
+    Serial.println(waterDetected == HIGH ? "⚠️ DETECTED" : "Normal");
     lastPrint = millis();
   }
   
@@ -368,7 +450,7 @@ void loop() {
     triggered = true;
     pumpRunning = true;
     pumpStartTime = millis();
-    detectionTime = millis();  // Record detection time
+    detectionTime = millis();
     
     // STEP 1: Activate pump
     digitalWrite(RELAY_PIN, LOW);
@@ -397,13 +479,7 @@ void loop() {
   if (servoRunning) {
     unsigned long servoElapsed = millis() - servoStartTime;
     
-    // Rotate servo continuously for 360 degrees
-    // Assuming servo takes ~2 seconds for full rotation at continuous speed
-    // Adjust timing based on your servo motor specs
-    
     if (servoElapsed < 2000) {
-      // Rotate servo (for continuous rotation servo, write 180 = full speed)
-      // For positional servo, sweep from 0 to 180
       int angle = map(servoElapsed, 0, 2000, 0, 180);
       myServo.write(angle);
       
@@ -418,45 +494,45 @@ void loop() {
     } else {
       // Servo rotation complete
       servoRunning = false;
-      myServo.write(0);  // Return to start position
+      myServo.write(0);
       Serial.println("✅ Servo: 360° rotation complete");
       Serial.println();
       
-      // STEP 4: Get GPS and send SMS
-      Serial.println("📍 STEP 3: Getting GPS location and sending SMS...");
+      // STEP 4: Send SMS with Philippine Time
+      Serial.println("📍 STEP 3: Preparing and sending SMS...");
       Serial.println();
       
-      // Build location string based on GPS availability
-      String location;
-      if (latStr != "" && lngStr != "") {
-        location = "https://maps.google.com/?q=" + latStr + "," + lngStr;
-      } else {
-        location = "no location found";
-      }
+      // Get Philippine Time from network
+      timeStr = getPhilippineTime();
       
-      Serial.println("DEBUG: About to call getCurrentTime()");
-      String timeStr = getCurrentTime();
-      Serial.println("DEBUG: getCurrentTime() returned: " + timeStr);
-      
-      // Build complete SMS message - use simple ASCII characters only
+      // Build and send SMS immediately (without GPS location)
       String sms = "FLOOD ALERT!\n";
       sms += "Harness sensor detected water\n";
       sms += "Inflation: 10s\n";
       sms += "Status: UNSAFE\n";
       sms += "Time: " + timeStr + "\n";
-      sms += "Location: " + location;
+      sms += "Location: Getting GPS...";
       
       // Show what we're sending
-      Serial.println("\n📱 SMS Content:");
+      Serial.println("\n📱 SMS Content (sending now):");
       Serial.println("─────────────────────────────────");
       Serial.println(sms);
       Serial.println("─────────────────────────────────");
-      Serial.println("Location data: " + location);
       
-      Serial.println("DEBUG: About to call sendSMS()");
-      // Send SMS
+      // Send SMS immediately - don't wait for GPS
       sendSMS(sms);
-      Serial.println("DEBUG: sendSMS() completed");
+      
+      // Now try to get GPS in background (optional - won't delay SMS)
+      Serial.println("\n🛰️ Attempting to get GPS location (not blocking)...");
+      bool gotGPS = getGPSLocation();
+      
+      if (gotGPS && latStr != "" && lngStr != "") {
+        Serial.println("✅ GPS location acquired:");
+        Serial.println("   https://maps.google.com/?q=" + latStr + "," + lngStr);
+        Serial.println("   (Already sent SMS without GPS - GPS was acquired after)");
+      } else {
+        Serial.println("⚠️ GPS not available - SMS was already sent without location");
+      }
       
       smsSent = true;
       Serial.println();
@@ -477,6 +553,7 @@ void loop() {
     // Reset location variables
     latStr = "";
     lngStr = "";
+    timeStr = "";
     
     Serial.println("╔════════════════════════════════════╗");
     Serial.println("║   💚 System Reset                  ║");
