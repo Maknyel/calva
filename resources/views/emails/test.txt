@@ -45,24 +45,90 @@ String waitForResponse(int timeout = 2000) {
   return response;
 }
 
-// ===== GET PHILIPPINE TIME FROM NETWORK =====
-String getPhilippineTime() {
-  Serial.println("⏰ Getting network time...");
+// ===== FORMAT GPS TIME TO PHILIPPINE TIME =====
+String formatGPSTime(String utc) {
+  // utc format: 20240124071530.000 (YYYYMMDDHHMMSS.sss)
+  if (utc.length() < 14) {
+    Serial.println("⚠️ Invalid GPS time format");
+    return "Time unavailable";
+  }
+  
+  String year = utc.substring(0, 4);
+  String month = utc.substring(4, 6);
+  String day = utc.substring(6, 8);
+  String hour = utc.substring(8, 10);
+  String minute = utc.substring(10, 12);
+  String second = utc.substring(12, 14);
+  
+  // Convert to Philippine Time (UTC+8)
+  int hr = hour.toInt() + 8;
+  int dy = day.toInt();
+  int mn = month.toInt();
+  int yr = year.toInt();
+  
+  // Handle day rollover
+  if (hr >= 24) {
+    hr -= 24;
+    dy++;
+    
+    // Days in each month (non-leap year, good enough for this application)
+    int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    
+    // Check for leap year
+    if ((yr % 4 == 0 && yr % 100 != 0) || (yr % 400 == 0)) {
+      daysInMonth[1] = 29;
+    }
+    
+    // Handle month rollover
+    if (dy > daysInMonth[mn - 1]) {
+      dy = 1;
+      mn++;
+      
+      // Handle year rollover
+      if (mn > 12) {
+        mn = 1;
+        yr++;
+      }
+    }
+  }
+  
+  String monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  String monthName = (mn >= 1 && mn <= 12) ? monthNames[mn - 1] : month;
+  
+  char timeBuffer[30];
+  sprintf(timeBuffer, "%02d:%s:%s", hr, minute.c_str(), second.c_str());
+  
+  char dayBuffer[3];
+  sprintf(dayBuffer, "%02d", dy);
+  
+  return monthName + " " + String(dayBuffer) + ", " + String(yr) + " " + String(timeBuffer) + " PHT";
+}
+
+// ===== GET PHILIPPINE TIME FROM NETWORK (FALLBACK) =====
+String getPhilippineTimeFromNetwork() {
+  Serial.println("⏰ Getting network time (fallback)...");
   a7670e.println("AT+CCLK?");
   String timeResponse = waitForResponse(2000);
   
   // Parse AT+CCLK response: +CCLK: "24/01/25,15:30:45+32"
-  // Format: YY/MM/DD,HH:MM:SS+TZ
   int timeIdx = timeResponse.indexOf("+CCLK: \"");
   if (timeIdx >= 0) {
     String datetime = timeResponse.substring(timeIdx + 8);
-    // Find the closing quote
     int endQuote = datetime.indexOf("\"");
     if (endQuote > 0) {
       datetime = datetime.substring(0, endQuote);
-      // datetime should be like: 24/01/25,15:30:45+32
       
-      // Extract date and time parts
+      // Extract year and validate
+      String yearStr = "20" + datetime.substring(0, 2);
+      int year = yearStr.toInt();
+      
+      // Check if year is unreasonable (before 2024 or after 2030)
+      if (year < 2024 || year > 2030) {
+        Serial.println("⚠️ Invalid network time (year: " + String(year) + ")");
+        return "[Time unavailable]";
+      }
+      
       int commaPos = datetime.indexOf(',');
       if (commaPos > 0) {
         String date = datetime.substring(0, commaPos);  // YY/MM/DD
@@ -74,8 +140,6 @@ String getPhilippineTime() {
           time = time.substring(0, plusPos);
         }
         
-        // Format: Jan 25, 2024 15:30:45
-        String year = "20" + date.substring(0, 2);
         String month = date.substring(3, 5);
         String day = date.substring(6, 8);
         
@@ -85,14 +149,13 @@ String getPhilippineTime() {
         int monthNum = month.toInt() - 1;
         String monthName = (monthNum >= 0 && monthNum < 12) ? monthNames[monthNum] : month;
         
-        return monthName + " " + day + ", " + year + " " + time + " PHT";
+        return monthName + " " + day + ", " + yearStr + " " + time + " PHT";
       }
     }
   }
   
-  // Fallback: return current date/time manually
-  Serial.println("⚠️ Could not get network time, using manual timestamp");
-  return "Jan 25, 2025 [Time unavailable] PHT";
+  Serial.println("⚠️ Could not get network time");
+  return "[Time unavailable]";
 }
 
 // ===== POWER ON A7670E MODULE =====
@@ -112,9 +175,9 @@ void powerOnA7670E() {
   delay(5000);  // Wait for module to fully boot
 }
 
-// ===== GET GPS LOCATION =====
+// ===== GET GPS LOCATION AND TIME =====
 bool getGPSLocation() {
-  Serial.println("\n🛰️ Getting GNSS location...");
+  Serial.println("\n🛰️ Getting GNSS location and time...");
 
   a7670e.println("AT+CGNSPWR=1");
   String r1 = waitForResponse(2000);
@@ -160,10 +223,20 @@ bool getGPSLocation() {
     if (fixStatus == "1" && lat.length() > 0 && lon.length() > 0 && lat != "0.0" && lon != "0.0") {
       latStr = lat;
       lngStr = lon;
+      
+      // Parse GPS UTC time and convert to Philippine Time
+      if (utc.length() >= 14) {
+        timeStr = formatGPSTime(utc);
+        Serial.println("✅ GPS TIME: " + timeStr);
+      } else {
+        Serial.println("⚠️ GPS time format invalid, trying network time...");
+        timeStr = getPhilippineTimeFromNetwork();
+      }
 
       Serial.println("✅ GNSS FIX!");
       Serial.println("Lat: " + latStr);
       Serial.println("Lon: " + lngStr);
+      Serial.println("Time: " + timeStr);
       return true;
     }
 
@@ -413,6 +486,7 @@ void setup() {
   Serial.println("   • Needs clear sky view (won't work indoors)");
   Serial.println("   • First fix takes 1-5 minutes outdoors");
   Serial.println("   • GPS antenna must be connected properly");
+  Serial.println("   • GPS time will be used for accurate timestamps");
   
   // Initialize Servo
   Serial.println("\n🔧 Initializing servo...");
@@ -498,41 +572,41 @@ void loop() {
       Serial.println("✅ Servo: 360° rotation complete");
       Serial.println();
       
-      // STEP 4: Send SMS with Philippine Time
-      Serial.println("📍 STEP 3: Preparing and sending SMS...");
+      // STEP 4: Get GPS location and time, then send SMS
+      Serial.println("📍 STEP 3: Getting GPS location and time...");
       Serial.println();
       
-      // Get Philippine Time from network
-      timeStr = getPhilippineTime();
+      // Try to get GPS location and time
+      bool gotGPS = getGPSLocation();
       
-      // Build and send SMS immediately (without GPS location)
+      // If GPS failed, use network time as fallback
+      if (!gotGPS || timeStr == "" || timeStr == "Time unavailable") {
+        Serial.println("⚠️ GPS time not available, using network time as fallback...");
+        timeStr = getPhilippineTimeFromNetwork();
+      }
+      
+      // Build SMS message
       String sms = "FLOOD ALERT!\n";
       sms += "Harness sensor detected water\n";
       sms += "Inflation: 10s\n";
       sms += "Status: UNSAFE\n";
       sms += "Time: " + timeStr + "\n";
-      sms += "Location: Getting GPS...";
+      
+      // Add location if GPS was successful
+      if (gotGPS && latStr != "" && lngStr != "") {
+        sms += "Location: https://maps.google.com/?q=" + latStr + "," + lngStr;
+      } else {
+        sms += "Location: GPS unavailable";
+      }
       
       // Show what we're sending
-      Serial.println("\n📱 SMS Content (sending now):");
+      Serial.println("\n📱 SMS Content:");
       Serial.println("─────────────────────────────────");
       Serial.println(sms);
       Serial.println("─────────────────────────────────");
       
-      // Send SMS immediately - don't wait for GPS
+      // Send SMS
       sendSMS(sms);
-      
-      // Now try to get GPS in background (optional - won't delay SMS)
-      Serial.println("\n🛰️ Attempting to get GPS location (not blocking)...");
-      bool gotGPS = getGPSLocation();
-      
-      if (gotGPS && latStr != "" && lngStr != "") {
-        Serial.println("✅ GPS location acquired:");
-        Serial.println("   https://maps.google.com/?q=" + latStr + "," + lngStr);
-        Serial.println("   (Already sent SMS without GPS - GPS was acquired after)");
-      } else {
-        Serial.println("⚠️ GPS not available - SMS was already sent without location");
-      }
       
       smsSent = true;
       Serial.println();
