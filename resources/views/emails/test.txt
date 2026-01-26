@@ -39,15 +39,24 @@ String timeStr = "";
 
 // ===== GET PHILIPPINE TIME FROM NTP =====
 String getPhilippineTime() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ WiFi not connected for time");
+    return "";
+  }
+  
+  Serial.println("🕐 Getting time from NTP...");
   configTime(8 * 3600, 0, "pool.ntp.org");
   
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo, 5000)) {
+  if (!getLocalTime(&timeinfo, 10000)) {
+    Serial.println("❌ Failed to get NTP time");
     return "";
   }
   
   char buf[50];
   strftime(buf, sizeof(buf), "%b %d, %Y %H:%M:%S PHT", &timeinfo);
+  
+  Serial.println("✅ NTP time: " + String(buf));
   return String(buf);
 }
 
@@ -155,6 +164,7 @@ bool tryGPSModule() {
           String gpsTime = formatGPSTime(utc);
           if (gpsTime != "") {
             timeStr = gpsTime;
+            Serial.println("✅ GPS TIME: " + timeStr);
           }
           
           Serial.println("✅ GPS FIX!");
@@ -302,7 +312,7 @@ void setup() {
   
   Serial.println("\n========================================");
   Serial.println("  FLOOD DETECTION SYSTEM");
-  Serial.println("  GPS → IP Geolocation");
+  Serial.println("  GPS → WiFi Fallback");
   Serial.println("========================================\n");
   
   // Connect to WiFi
@@ -323,7 +333,7 @@ void setup() {
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("⚠️ WiFi failed - IP geolocation won't work\n");
+    Serial.println("⚠️ WiFi failed - IP geolocation & NTP won't work\n");
   }
   
   powerOnA7670E();
@@ -365,7 +375,8 @@ void setup() {
   Serial.println("\n========================================");
   Serial.println("✅ READY!");
   Serial.println("========================================");
-  Serial.println("Priority: GPS Module → IP Geolocation");
+  Serial.println("Time Priority: GPS → WiFi NTP");
+  Serial.println("Location Priority: GPS → IP Geolocation");
   Serial.println("Monitoring for water...\n");
 }
 
@@ -411,7 +422,8 @@ void loop() {
       myServo.write(0);
       Serial.println("✅ Servo done\n");
       
-      // PRIORITY 1: Try GPS module first
+      // ===== LOCATION PRIORITY =====
+      // PRIORITY 1: Try GPS module first for location
       bool hasLocation = tryGPSModule();
       
       // PRIORITY 2: If GPS failed, get location from IP
@@ -420,9 +432,18 @@ void loop() {
         hasLocation = getLocationFromIP();
       }
       
-      // Get time from NTP if WiFi available
-      if (WiFi.status() == WL_CONNECTED && timeStr == "") {
+      // ===== TIME PRIORITY =====
+      // PRIORITY 1: GPS time (already set in tryGPSModule if successful)
+      // PRIORITY 2: If GPS didn't provide time, try WiFi NTP
+      if (timeStr == "") {
+        Serial.println("GPS time not available, trying WiFi NTP...");
         timeStr = getPhilippineTime();
+      }
+      
+      // PRIORITY 3: Final fallback
+      if (timeStr == "") {
+        timeStr = "Time unavailable";
+        Serial.println("⚠️ All time sources failed");
       }
       
       // Build SMS
@@ -430,7 +451,7 @@ void loop() {
       sms += "Harness sensor detected water\n";
       sms += "Inflation: 10s\n";
       sms += "Status: UNSAFE\n";
-      sms += "Time: " + (timeStr != "" ? timeStr : "Time unavailable") + "\n";
+      sms += "Time: " + timeStr + "\n";
       
       if (hasLocation && latStr != "" && lngStr != "") {
         sms += "Location: https://www.google.com/maps/@" + latStr + "," + lngStr + ",14z";
