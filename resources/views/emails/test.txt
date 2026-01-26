@@ -1,4 +1,7 @@
 #include <ESP32Servo.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <time.h>
 
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
@@ -8,9 +11,14 @@
 #define A7670E_TX    17
 #define A7670E_PWR   25
 
+// ===== WIFI CREDENTIALS =====
+const char* ssid = "TestingWifi";
+const char* password = "Abc1234567";
+
 // ===== SERIAL PORT =====
 HardwareSerial a7670e(1);
 Servo myServo;
+WebServer server(80);
 
 // ===== CONFIGURATION =====
 String phoneNumber = "+639070653250";
@@ -24,10 +32,128 @@ unsigned long pumpStartTime = 0;
 unsigned long servoStartTime = 0;
 const unsigned long PUMP_DURATION = 10000;
 
-// ===== GPS VARIABLES =====
+// ===== LOCATION & TIME VARIABLES =====
 String latStr = "";
 String lngStr = "";
 String timeStr = "";
+bool locationSet = false;
+
+// ===== GET PHILIPPINE TIME FROM NTP =====
+String getPhilippineTime() {
+  configTime(8 * 3600, 0, "pool.ntp.org");
+  
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo, 5000)) {
+    return "Time sync failed";
+  }
+  
+  char buf[50];
+  strftime(buf, sizeof(buf), "%b %d, %Y %H:%M:%S PHT", &timeinfo);
+  return String(buf);
+}
+
+// ===== WEB PAGES =====
+String getIndexPage() {
+  String html = "<!DOCTYPE html><html><head>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  html += "<title>Flood Detection System</title>";
+  html += "<style>";
+  html += "body { font-family: Arial; margin: 20px; background: #f0f0f0; }";
+  html += ".container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }";
+  html += "h1 { color: #2196F3; text-align: center; }";
+  html += ".status { padding: 15px; margin: 10px 0; border-radius: 5px; }";
+  html += ".success { background: #4CAF50; color: white; }";
+  html += ".warning { background: #ff9800; color: white; }";
+  html += ".info { background: #2196F3; color: white; }";
+  html += "button { width: 100%; padding: 15px; font-size: 16px; margin: 5px 0; border: none; border-radius: 5px; cursor: pointer; }";
+  html += ".btn-primary { background: #2196F3; color: white; }";
+  html += ".btn-success { background: #4CAF50; color: white; }";
+  html += "input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }";
+  html += "#map { width: 100%; height: 300px; border: 1px solid #ccc; margin: 10px 0; }";
+  html += "</style>";
+  html += "</head><body>";
+  html += "<div class='container'>";
+  html += "<h1>🌊 Flood Detection System</h1>";
+  
+  if (locationSet) {
+    html += "<div class='status success'>✅ Location Set</div>";
+    html += "<p><strong>Latitude:</strong> " + latStr + "</p>";
+    html += "<p><strong>Longitude:</strong> " + lngStr + "</p>";
+    html += "<p><strong>Time:</strong> " + timeStr + "</p>";
+  } else {
+    html += "<div class='status warning'>⚠️ Location Not Set</div>";
+  }
+  
+  html += "<div class='status info'>";
+  html += "<strong>System Status</strong><br>";
+  html += "Water: " + String(digitalRead(WATER_SENSOR) == HIGH ? "DETECTED ⚠️" : "Normal ✓") + "<br>";
+  html += "Pump: " + String(pumpRunning ? "ON" : "OFF") + "<br>";
+  html += "</div>";
+  
+  html += "<h3>Set Location</h3>";
+  html += "<button class='btn-primary' onclick='getLocation()'>📍 Use My Current Location</button>";
+  
+  html += "<h4>Or Enter Manually:</h4>";
+  html += "<form action='/setlocation' method='POST'>";
+  html += "<input type='text' name='lat' placeholder='Latitude' required>";
+  html += "<input type='text' name='lng' placeholder='Longitude' required>";
+  html += "<button type='submit' class='btn-success'>Set Location</button>";
+  html += "</form>";
+  
+  html += "<div id='map'></div>";
+  
+  html += "<script>";
+  html += "function getLocation() {";
+  html += "  if (navigator.geolocation) {";
+  html += "    navigator.geolocation.getCurrentPosition(function(pos) {";
+  html += "      var lat = pos.coords.latitude;";
+  html += "      var lng = pos.coords.longitude;";
+  html += "      fetch('/setlocation?lat=' + lat + '&lng=' + lng)";
+  html += "        .then(() => location.reload());";
+  html += "    }, function(error) {";
+  html += "      alert('Error getting location: ' + error.message);";
+  html += "    });";
+  html += "  } else {";
+  html += "    alert('Geolocation not supported');";
+  html += "  }";
+  html += "}";
+  
+  if (locationSet) {
+    html += "var map = L.map('map').setView([" + latStr + ", " + lngStr + "], 15);";
+    html += "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);";
+    html += "L.marker([" + latStr + ", " + lngStr + "]).addTo(map).bindPopup('Flood Detection System').openPopup();";
+  }
+  
+  html += "</script>";
+  html += "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.7.1/dist/leaflet.css'/>";
+  html += "<script src='https://unpkg.com/leaflet@1.7.1/dist/leaflet.js'></script>";
+  html += "</div></body></html>";
+  
+  return html;
+}
+
+void handleRoot() {
+  server.send(200, "text/html", getIndexPage());
+}
+
+void handleSetLocation() {
+  if (server.hasArg("lat") && server.hasArg("lng")) {
+    latStr = server.arg("lat");
+    lngStr = server.arg("lng");
+    timeStr = getPhilippineTime();
+    locationSet = true;
+    
+    Serial.println("\n✅ Location set via WiFi:");
+    Serial.println("Lat: " + latStr);
+    Serial.println("Lng: " + lngStr);
+    Serial.println("Time: " + timeStr);
+    
+    server.sendHeader("Location", "/");
+    server.send(303);
+  } else {
+    server.send(400, "text/plain", "Missing parameters");
+  }
+}
 
 // ===== HELPER FUNCTION =====
 String waitForResponse(int timeout = 2000) {
@@ -44,37 +170,6 @@ String waitForResponse(int timeout = 2000) {
   return response;
 }
 
-// ===== FORMAT GPS TIME TO PHILIPPINE TIME =====
-String formatGPSTime(String utc) {
-  if (utc.length() < 14) return "";
-  
-  String year = utc.substring(0, 4);
-  String month = utc.substring(4, 6);
-  String day = utc.substring(6, 8);
-  String hour = utc.substring(8, 10);
-  String minute = utc.substring(10, 12);
-  String second = utc.substring(12, 14);
-  
-  int hr = hour.toInt() + 8;  // UTC+8 for Philippines
-  int dy = day.toInt();
-  
-  if (hr >= 24) {
-    hr -= 24;
-    dy++;
-  }
-  
-  String months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-  int mn = month.toInt() - 1;
-  String monthName = (mn >= 0 && mn < 12) ? months[mn] : month;
-  
-  char buf[50];
-  sprintf(buf, "%s %02d, %s %02d:%s:%s PHT", 
-          monthName.c_str(), dy, year.c_str(), hr, minute.c_str(), second.c_str());
-  
-  return String(buf);
-}
-
 // ===== POWER ON MODULE =====
 void powerOnA7670E() {
   Serial.println("🔌 Powering on A7670E...");
@@ -85,105 +180,6 @@ void powerOnA7670E() {
   delay(1000);
   digitalWrite(A7670E_PWR, HIGH);
   delay(5000);
-}
-
-// ===== INITIALIZE GPS PROPERLY =====
-bool initGPS() {
-  Serial.println("\n🛰️ Initializing GPS...");
-  
-  // Method 1: Try AT+CGNSPWR
-  Serial.println("Method 1: AT+CGNSPWR=1");
-  a7670e.println("AT+CGNSPWR=1");
-  String r1 = waitForResponse(2000);
-  
-  if (r1.indexOf("OK") >= 0) {
-    Serial.println("✅ GPS powered on with AT+CGNSPWR");
-    delay(2000);
-    return true;
-  }
-  
-  // Method 2: Try AT+CGPS
-  Serial.println("Method 2: AT+CGPS=1");
-  a7670e.println("AT+CGPS=1");
-  String r2 = waitForResponse(2000);
-  
-  if (r2.indexOf("OK") >= 0) {
-    Serial.println("✅ GPS powered on with AT+CGPS");
-    delay(2000);
-    return true;
-  }
-  
-  // Method 3: Try AT+CGPSINFO
-  Serial.println("Method 3: Checking AT+CGPSINFO");
-  a7670e.println("AT+CGPSINFO=1");
-  String r3 = waitForResponse(2000);
-  
-  Serial.println("\n❌ GPS initialization failed!");
-  Serial.println("Your board may not have GPS hardware.");
-  Serial.println("Response 1: " + r1);
-  Serial.println("Response 2: " + r2);
-  Serial.println("Response 3: " + r3);
-  
-  return false;
-}
-
-// ===== GET GPS LOCATION =====
-bool getGPSLocation() {
-  Serial.println("\n🛰️ Getting GPS fix (must be OUTDOORS)...");
-  
-  for (int i = 0; i < 60; i++) {  // 60 attempts = ~2 minutes
-    Serial.printf("Attempt %d/60...\n", i + 1);
-    
-    // Try AT+CGNSINF
-    a7670e.println("AT+CGNSINF");
-    String resp = waitForResponse(2000);
-    
-    if (resp.indexOf("+CGNSINF:") >= 0) {
-      int p = resp.indexOf("+CGNSINF:");
-      String data = resp.substring(p + 10);
-      
-      // Parse: runStatus,fixStatus,UTC,lat,lon,...
-      int c1 = data.indexOf(',');
-      int c2 = data.indexOf(',', c1 + 1);
-      int c3 = data.indexOf(',', c2 + 1);
-      int c4 = data.indexOf(',', c3 + 1);
-      int c5 = data.indexOf(',', c4 + 1);
-      
-      if (c5 > 0) {
-        String fix = data.substring(c1 + 1, c2);
-        String utc = data.substring(c2 + 1, c3);
-        String lat = data.substring(c3 + 1, c4);
-        String lon = data.substring(c4 + 1, c5);
-        
-        fix.trim();
-        utc.trim();
-        lat.trim();
-        lon.trim();
-        
-        Serial.println("Fix status: " + fix + ", Lat: " + lat + ", Lon: " + lon);
-        
-        if (fix == "1" && lat != "0.0" && lon != "0.0" && lat.length() > 0) {
-          latStr = lat;
-          lngStr = lon;
-          timeStr = formatGPSTime(utc);
-          
-          Serial.println("✅ GPS FIX ACQUIRED!");
-          Serial.println("Lat: " + latStr);
-          Serial.println("Lon: " + lngStr);
-          Serial.println("Time: " + timeStr);
-          return true;
-        }
-      }
-    } else if (resp.indexOf("ERROR") >= 0) {
-      Serial.println("❌ AT+CGNSINF returned ERROR - GPS not available on this board");
-      return false;
-    }
-    
-    delay(2000);
-  }
-  
-  Serial.println("❌ No GPS fix after 2 minutes");
-  return false;
 }
 
 // ===== SEND SMS =====
@@ -269,9 +265,65 @@ void setup() {
   Serial.println("  FLOOD DETECTION SYSTEM");
   Serial.println("========================================\n");
   
+  // Connect to WiFi - IMPROVED VERSION
+  Serial.println("📶 Connecting to WiFi...");
+  Serial.print("SSID: ");
+  Serial.println(ssid);
+  
+  WiFi.disconnect(true);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 40) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+    
+    if (attempts % 10 == 0) {
+      Serial.println();
+      Serial.print("Status: ");
+      Serial.print(WiFi.status());
+      Serial.print(" | Attempt: ");
+      Serial.print(attempts);
+      Serial.println("/40");
+    }
+  }
+  Serial.println();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅✅✅ WiFi Connected! ✅✅✅");
+    Serial.print("📱 IP Address: http://");
+    Serial.println(WiFi.localIP());
+    Serial.print("📶 Signal: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    Serial.println("\n🌐 OPEN THIS URL ON YOUR PHONE:");
+    Serial.print("   http://");
+    Serial.println(WiFi.localIP());
+    Serial.println();
+    
+    // Setup web server
+    server.on("/", handleRoot);
+    server.on("/setlocation", handleSetLocation);
+    server.begin();
+    Serial.println("✅ Web server started\n");
+  } else {
+    Serial.println("\n❌ WiFi Connection FAILED!");
+    Serial.print("Status code: ");
+    Serial.println(WiFi.status());
+    Serial.println("\nTroubleshooting:");
+    Serial.println("1. Make sure phone hotspot 'TestingWifi' is ON");
+    Serial.println("2. Password is 'Abc1234567' (case-sensitive)");
+    Serial.println("3. Hotspot is 2.4GHz (not 5GHz)");
+    Serial.println("4. ESP32 is within 5 meters of phone");
+    Serial.println("\nContinuing without web interface...\n");
+  }
+  
   powerOnA7670E();
   
-  Serial.println("📡 Initializing A7670E...");
+  Serial.println("\n📡 Initializing A7670E...");
   a7670e.begin(115200, SERIAL_8N1, A7670E_RX, A7670E_TX);
   delay(2000);
   
@@ -280,9 +332,6 @@ void setup() {
   
   a7670e.println("ATE0");
   waitForResponse(1000);
-  
-  a7670e.println("ATI");
-  waitForResponse(2000);
   
   Serial.println("\n⏳ Network registration...");
   for (int i = 0; i < 40; i++) {
@@ -296,20 +345,8 @@ void setup() {
     delay(1000);
   }
   
-  a7670e.println("AT+CSQ");
-  waitForResponse(2000);
-  
   a7670e.println("AT+CMGF=1");
   waitForResponse(1000);
-  
-  // Try to initialize GPS
-  bool hasGPS = initGPS();
-  
-  if (hasGPS) {
-    Serial.println("✅ GPS available - will get location when triggered");
-  } else {
-    Serial.println("⚠️ GPS NOT available - SMS will send without location");
-  }
   
   Serial.println("\n🔧 Servo...");
   myServo.setPeriodHertz(50);
@@ -317,12 +354,14 @@ void setup() {
   myServo.write(0);
   
   Serial.println("\n========================================");
-  Serial.println("✅ READY!");
+  Serial.println("✅ SYSTEM READY!");
   Serial.println("========================================\n");
 }
 
 // ===== LOOP =====
 void loop() {
+  server.handleClient();
+  
   int waterDetected = digitalRead(WATER_SENSOR);
   
   static unsigned long lastPrint = 0;
@@ -363,24 +402,20 @@ void loop() {
       myServo.write(0);
       Serial.println("✅ Servo done\n");
       
-      // Try GPS (2 minute max)
-      bool gotGPS = getGPSLocation();
+      if (WiFi.status() == WL_CONNECTED) {
+        timeStr = getPhilippineTime();
+      }
       
       String sms = "FLOOD ALERT!\n";
       sms += "Harness sensor detected water\n";
       sms += "Inflation: 10s\n";
       sms += "Status: UNSAFE\n";
+      sms += "Time: " + (timeStr != "" ? timeStr : "Not set") + "\n";
       
-      if (gotGPS && timeStr != "") {
-        sms += "Time: " + timeStr + "\n";
-      } else {
-        sms += "Time: GPS time unavailable\n";
-      }
-      
-      if (gotGPS && latStr != "" && lngStr != "") {
+      if (locationSet && latStr != "" && lngStr != "") {
         sms += "Location: https://maps.google.com/?q=" + latStr + "," + lngStr;
       } else {
-        sms += "Location: GPS fix failed (needs outdoors + clear sky)";
+        sms += "Location: Not set (use web interface)";
       }
       
       Serial.println("📱 SMS:");
@@ -400,9 +435,6 @@ void loop() {
     pumpRunning = false;
     servoRunning = false;
     smsSent = false;
-    latStr = "";
-    lngStr = "";
-    timeStr = "";
     
     Serial.println("💚 Reset\n");
   }
