@@ -471,7 +471,6 @@ void loop() {
       // Build SMS
       String sms = "FLOOD ALERT!\n";
       sms += "Harness sensor detected water\n";
-      sms += "Inflation: 10s\n";
       sms += "Status: UNSAFE\n";
       sms += "Time: " + timeStr + "\n";
       
