@@ -1,7 +1,7 @@
 #include <ESP32Servo.h>
 #include <WiFi.h>
-#include <WebServer.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include <time.h>
 
 // ===== PIN DEFINITIONS =====
@@ -19,7 +19,6 @@ const char* password = "Abc1234567";
 // ===== SERIAL PORT =====
 HardwareSerial a7670e(1);
 Servo myServo;
-WebServer server(80);
 
 // ===== CONFIGURATION =====
 String phoneNumber = "+639070653250";
@@ -50,53 +49,6 @@ String getPhilippineTime() {
   char buf[50];
   strftime(buf, sizeof(buf), "%b %d, %Y %H:%M:%S PHT", &timeinfo);
   return String(buf);
-}
-
-// ===== SIMPLE LOCATION PAGE - JUST FOR GETTING GPS =====
-String getLocationPage() {
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
-  html += "<title>Getting Location...</title>";
-  html += "<style>body{font-family:Arial;text-align:center;padding:50px;background:#2196F3;color:white;}";
-  html += "h1{font-size:24px;}p{font-size:18px;}</style>";
-  html += "</head><body>";
-  html += "<h1>🌊 Flood Detection System</h1>";
-  html += "<p>Getting your location...</p>";
-  html += "<p id='status'>Waiting for GPS...</p>";
-  html += "<script>";
-  html += "if(navigator.geolocation){";
-  html += "  navigator.geolocation.getCurrentPosition(function(pos){";
-  html += "    var lat=pos.coords.latitude;";
-  html += "    var lng=pos.coords.longitude;";
-  html += "    document.getElementById('status').innerHTML='Location acquired!';";
-  html += "    fetch('/savelocation?lat='+lat+'&lng='+lng).then(()=>{";
-  html += "      document.getElementById('status').innerHTML='✅ Location saved! You can close this page.';";
-  html += "    });";
-  html += "  },function(err){";
-  html += "    document.getElementById('status').innerHTML='❌ Error: '+err.message;";
-  html += "  });";
-  html += "}else{";
-  html += "  document.getElementById('status').innerHTML='Geolocation not supported';";
-  html += "}";
-  html += "</script></body></html>";
-  return html;
-}
-
-void handleRoot() {
-  server.send(200, "text/html", getLocationPage());
-}
-
-void handleSaveLocation() {
-  if (server.hasArg("lat") && server.hasArg("lng")) {
-    latStr = server.arg("lat");
-    lngStr = server.arg("lng");
-    
-    Serial.println("\n✅ Location received from phone:");
-    Serial.println("Lat: " + latStr);
-    Serial.println("Lng: " + lngStr);
-    
-    server.send(200, "text/plain", "OK");
-  }
 }
 
 // ===== HELPER FUNCTION =====
@@ -161,7 +113,6 @@ void powerOnA7670E() {
 bool tryGPSModule() {
   Serial.println("\n🛰️ Trying GPS module (10 sec)...");
   
-  // Try to power on GPS
   a7670e.println("AT+CGNSPWR=1");
   String r = waitForResponse(2000);
   
@@ -170,7 +121,6 @@ bool tryGPSModule() {
     return false;
   }
   
-  // Quick attempts
   for (int i = 0; i < 5; i++) {
     Serial.printf("GPS attempt %d/5...\n", i + 1);
     
@@ -222,35 +172,53 @@ bool tryGPSModule() {
   return false;
 }
 
-// ===== GET LOCATION FROM PHONE =====
-bool getLocationFromPhone() {
+// ===== GET LOCATION FROM IP GEOLOCATION API =====
+bool getLocationFromIP() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("❌ WiFi not connected - can't get phone location");
+    Serial.println("❌ WiFi not connected");
     return false;
   }
   
-  Serial.println("\n📱 Getting location from phone...");
-  Serial.print("Open this on your phone NOW: http://");
-  Serial.println(WiFi.localIP());
+  Serial.println("\n🌐 Getting location from IP geolocation...");
   
-  // Clear previous location
-  latStr = "";
-  lngStr = "";
+  HTTPClient http;
   
-  // Wait up to 30 seconds for location
-  unsigned long start = millis();
-  while (millis() - start < 30000 && latStr == "") {
-    server.handleClient();
-    delay(100);
-  }
+  // Using ip-api.com (free, no key needed, 45 requests/minute)
+  http.begin("http://ip-api.com/json/?fields=lat,lon");
   
-  if (latStr != "" && lngStr != "") {
-    Serial.println("✅ Location received from phone!");
-    return true;
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String payload = http.getString();
+    Serial.println("Response: " + payload);
+    
+    // Parse JSON
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, payload);
+    
+    if (!error) {
+      float lat = doc["lat"];
+      float lon = doc["lon"];
+      
+      latStr = String(lat, 6);
+      lngStr = String(lon, 6);
+      
+      Serial.println("✅ IP Geolocation acquired!");
+      Serial.println("Lat: " + latStr);
+      Serial.println("Lng: " + lngStr);
+      
+      http.end();
+      return true;
+    } else {
+      Serial.println("❌ JSON parse error");
+    }
   } else {
-    Serial.println("⚠️ Timeout - no location from phone");
-    return false;
+    Serial.print("❌ HTTP error: ");
+    Serial.println(httpCode);
   }
+  
+  http.end();
+  return false;
 }
 
 // ===== SEND SMS =====
@@ -334,10 +302,10 @@ void setup() {
   
   Serial.println("\n========================================");
   Serial.println("  FLOOD DETECTION SYSTEM");
-  Serial.println("  GPS → Phone Fallback");
+  Serial.println("  GPS → IP Geolocation");
   Serial.println("========================================\n");
   
-  // Connect to WiFi (for phone location fallback)
+  // Connect to WiFi
   Serial.println("📶 Connecting to WiFi...");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -352,15 +320,10 @@ void setup() {
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("✅ WiFi Connected!");
-    Serial.print("IP: http://");
+    Serial.print("IP: ");
     Serial.println(WiFi.localIP());
-    
-    server.on("/", handleRoot);
-    server.on("/savelocation", handleSaveLocation);
-    server.begin();
-    Serial.println("✅ Web server started (for phone fallback)\n");
   } else {
-    Serial.println("⚠️ WiFi failed - phone fallback won't work\n");
+    Serial.println("⚠️ WiFi failed - IP geolocation won't work\n");
   }
   
   powerOnA7670E();
@@ -402,14 +365,12 @@ void setup() {
   Serial.println("\n========================================");
   Serial.println("✅ READY!");
   Serial.println("========================================");
-  Serial.println("Priority: GPS Module → Phone Location");
+  Serial.println("Priority: GPS Module → IP Geolocation");
   Serial.println("Monitoring for water...\n");
 }
 
 // ===== LOOP =====
 void loop() {
-  server.handleClient();
-  
   int waterDetected = digitalRead(WATER_SENSOR);
   
   static unsigned long lastPrint = 0;
@@ -453,10 +414,10 @@ void loop() {
       // PRIORITY 1: Try GPS module first
       bool hasLocation = tryGPSModule();
       
-      // PRIORITY 2: If GPS failed, try phone location
+      // PRIORITY 2: If GPS failed, get location from IP
       if (!hasLocation) {
-        Serial.println("GPS failed, trying phone...");
-        hasLocation = getLocationFromPhone();
+        Serial.println("GPS failed, trying IP geolocation...");
+        hasLocation = getLocationFromIP();
       }
       
       // Get time from NTP if WiFi available
@@ -474,7 +435,7 @@ void loop() {
       if (hasLocation && latStr != "" && lngStr != "") {
         sms += "Location: https://www.google.com/maps/@" + latStr + "," + lngStr + ",14z";
       } else {
-        sms += "Location: GPS & phone unavailable";
+        sms += "Location: Unavailable";
       }
       
       Serial.println("📱 SMS:");
