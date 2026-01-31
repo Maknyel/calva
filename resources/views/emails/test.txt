@@ -1,4 +1,7 @@
 #include <TinyGPS++.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
@@ -7,6 +10,10 @@
 #define SIM800_TX    17
 #define GPS_RX       18
 #define GPS_TX       19
+
+// ===== WIFI =====
+const char* ssid = "TestingWifi";
+const char* password = "Abc1234567";
 
 // ===== SERIAL PORTS =====
 HardwareSerial sim800(1);
@@ -21,7 +28,6 @@ bool triggered = false;
 bool pumpRunning = false;
 bool smsSent = false;
 unsigned long pumpStartTime = 0;
-unsigned long detectionTime = 0;
 
 const unsigned long PUMP_DURATION = 8500;
 
@@ -36,31 +42,28 @@ void waitForResponse(int timeout = 2000) {
   Serial.println();
 }
 
-// ===== TIME STRING =====
-String getCurrentTime() {
-  if (gps.time.isValid() && gps.date.isValid()) {
-    int hour = gps.time.hour() + 8;
-    int day = gps.date.day();
-    int month = gps.date.month();
-    int year = gps.date.year();
+// ===== WIFI CONNECT =====
+void connectWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
 
-    if (hour >= 24) {
-      hour -= 24;
-      day++;
-    }
+  Serial.print("📡 Connecting to WiFi");
+  WiFi.begin(ssid, password);
 
-    char buf[40];
-    sprintf(buf, "%02d/%02d/%04d %02d:%02d:%02d PHT",
-            month, day, year, hour,
-            gps.time.minute(), gps.time.second());
-    return String(buf);
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
+    delay(500);
+    Serial.print(".");
   }
 
-  return "Time unavailable";
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ WiFi connected");
+  } else {
+    Serial.println("\n❌ WiFi failed");
+  }
 }
 
 // ===== GPS LOCATION =====
-String getGPSLocation() {
+bool getGPSData(String &location, String &timeStr) {
   Serial.println("📍 Acquiring GPS location...");
 
   unsigned long start = millis();
@@ -69,27 +72,70 @@ String getGPSLocation() {
       gps.encode(gpsSerial.read());
     }
 
-    if (gps.location.isValid() && gps.satellites.value() >= 4) {
+    if (gps.location.isValid() && gps.satellites.value() >= 4 &&
+        gps.time.isValid() && gps.date.isValid()) {
+
       double lat = gps.location.lat();
       double lng = gps.location.lng();
+      int hour = gps.time.hour() + 8;
+      if (hour >= 24) hour -= 24;
+
+      char timeBuf[40];
+      sprintf(timeBuf, "%02d/%02d/%04d %02d:%02d:%02d PHT",
+              gps.date.month(), gps.date.day(), gps.date.year(),
+              hour, gps.time.minute(), gps.time.second());
+
+      location =
+        String(lat, 6) + ", " + String(lng, 6) +
+        "\nMaps: https://maps.google.com/?q=" +
+        String(lat, 6) + "," + String(lng, 6);
+
+      timeStr = String(timeBuf);
 
       Serial.println("✅ GPS FIX OK");
-      String loc = String(lat, 6) + ", " + String(lng, 6);
-      loc += "\nMaps: https://maps.google.com/?q=" +
-             String(lat, 6) + "," + String(lng, 6);
-      return loc;
+      return true;
     }
     delay(100);
   }
 
   Serial.println("❌ GPS FIX TIMEOUT");
-  return "GPS unavailable";
+  return false;
+}
+
+// ===== HTTP LOCATION FALLBACK =====
+bool getHttpLocation(String &location, String &timeStr) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+
+  HTTPClient http;
+  http.begin("https://harness.dl-hosting.net/api_location.php");
+
+  int httpCode = http.GET();
+  if (httpCode != 200) {
+    http.end();
+    return false;
+  }
+
+  String payload = http.getString();
+  http.end();
+
+  StaticJsonDocument<256> doc;
+  if (deserializeJson(doc, payload)) return false;
+
+  float lng = doc["longhitude"];
+  float lat = doc["latitude"];
+  timeStr = doc["time"].as<String>();
+
+  location =
+    String(lat, 6) + ", " + String(lng, 6) +
+    "\nMaps: https://maps.google.com/?q=" +
+    String(lat, 6) + "," + String(lng, 6);
+
+  Serial.println("🌐 HTTP LOCATION USED");
+  return true;
 }
 
 // ===== SEND SMS =====
 void sendSMS(String msg) {
-  Serial.println("📤 Sending SMS...");
-
   sim800.println("AT");
   waitForResponse();
 
@@ -102,27 +148,8 @@ void sendSMS(String msg) {
   sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
   delay(2000);
 
-  for (uint16_t i = 0; i < msg.length(); i++) {
-    sim800.write(msg[i]);
-    delay(5);
-  }
-
-  sim800.write(26);  // CTRL+Z
-  Serial.println("⏳ Waiting for SMS confirmation...");
-
-  unsigned long t = millis();
-  while (millis() - t < 15000) {
-    while (sim800.available()) {
-      String r = sim800.readString();
-      Serial.print(r);
-      if (r.indexOf("+CMGS:") >= 0) {
-        Serial.println("✅ SMS SENT");
-        return;
-      }
-    }
-  }
-
-  Serial.println("⚠️ SMS status unknown");
+  sim800.print(msg);
+  sim800.write(26);
 }
 
 // ===== SETUP =====
@@ -132,42 +159,40 @@ void setup() {
   digitalWrite(RELAY_PIN, HIGH);
 
   Serial.begin(115200);
-  delay(1000);
-
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
 
-  Serial.println("✅ SYSTEM READY (NO SERVO)");
+  connectWiFi();
+  Serial.println("✅ SYSTEM READY");
 }
 
 // ===== LOOP =====
 void loop() {
   int waterDetected = digitalRead(WATER_SENSOR);
 
-  // ===== TRIGGER =====
   if (waterDetected == HIGH && !triggered) {
     triggered = true;
     pumpRunning = true;
     pumpStartTime = millis();
-    detectionTime = millis();
-
     digitalWrite(RELAY_PIN, LOW);
     Serial.println("🚨 WATER DETECTED — Pump ON");
   }
 
-  // ===== STOP PUMP =====
   if (pumpRunning && millis() - pumpStartTime >= PUMP_DURATION) {
     pumpRunning = false;
     digitalWrite(RELAY_PIN, HIGH);
-
     Serial.println("🔌 Pump OFF");
 
-    // ===== GPS + SMS =====
-    String location = getGPSLocation();
-    String timeStr = getCurrentTime();
+    String location, timeStr;
 
-    gpsSerial.end();   // TURN GPS OFF
-    delay(500);
+    bool gpsOK = getGPSData(location, timeStr);
+    if (!gpsOK) {
+      connectWiFi();
+      getHttpLocation(location, timeStr);
+    }
+
+    gpsSerial.end();
+    delay(300);
 
     String sms =
       "FLOOD ALERT!\n"
@@ -179,13 +204,10 @@ void loop() {
     smsSent = true;
   }
 
-  // ===== RESET =====
   if (triggered && smsSent && waterDetected == LOW) {
     triggered = false;
     smsSent = false;
-
     gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-
     Serial.println("💚 System reset");
   }
 
