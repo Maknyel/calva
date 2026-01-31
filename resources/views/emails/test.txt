@@ -30,6 +30,10 @@ double lastLat = 0.0;
 double lastLng = 0.0;
 bool gpsEverFixed = false;
 
+// ===== GPS DIAGNOSTICS =====
+unsigned long lastGPSCheck = 0;
+unsigned long gpsCharCount = 0;
+
 // ===== SIM800 RESPONSE =====
 void waitForResponse(int timeout = 2000) {
   unsigned long start = millis();
@@ -70,9 +74,13 @@ String getGPSLocation() {
 
   // Try to get fresh GPS data for up to 10 seconds
   unsigned long start = millis();
+  int charsProcessed = 0;
+  
   while (millis() - start < 10000) {
     while (gpsSerial.available()) {
-      gps.encode(gpsSerial.read());
+      char c = gpsSerial.read();
+      gps.encode(c);
+      charsProcessed++;
     }
 
     if (gps.location.isValid() && gps.satellites.value() >= 4) {
@@ -91,6 +99,9 @@ String getGPSLocation() {
     }
     delay(100);
   }
+
+  Serial.print("⚠️ GPS chars received during check: ");
+  Serial.println(charsProcessed);
 
   // If no fresh fix, use last known location
   if (gpsEverFixed) {
@@ -159,13 +170,16 @@ void setup() {
 
   Serial.println("✅ SYSTEM READY");
   Serial.println("🛰️ GPS warming up... (this may take 30-60 seconds)");
+  Serial.println("📡 Monitoring GPS data stream...");
 }
 
 // ===== LOOP =====
 void loop() {
   // ===== CONTINUOUSLY UPDATE GPS =====
   while (gpsSerial.available()) {
-    gps.encode(gpsSerial.read());
+    char c = gpsSerial.read();
+    gps.encode(c);
+    gpsCharCount++;
     
     // Store valid location data
     if (gps.location.isValid()) {
@@ -174,9 +188,31 @@ void loop() {
       if (!gpsEverFixed) {
         gpsEverFixed = true;
         Serial.print("🛰️ GPS FIRST FIX! Satellites: ");
-        Serial.println(gps.satellites.value());
+        Serial.print(gps.satellites.value());
+        Serial.print(" | Lat: ");
+        Serial.print(lastLat, 6);
+        Serial.print(" | Lng: ");
+        Serial.println(lastLng, 6);
       }
     }
+  }
+
+  // ===== GPS DIAGNOSTIC (every 10 seconds) =====
+  if (millis() - lastGPSCheck > 10000) {
+    lastGPSCheck = millis();
+    
+    Serial.print("📊 GPS Status - Chars received: ");
+    Serial.print(gpsCharCount);
+    Serial.print(" | Satellites: ");
+    Serial.print(gps.satellites.value());
+    Serial.print(" | Fix: ");
+    Serial.print(gps.location.isValid() ? "YES" : "NO");
+    Serial.print(" | Sentences: ");
+    Serial.print(gps.sentencesWithFix());
+    Serial.print("/");
+    Serial.println(gps.passedChecksum());
+    
+    gpsCharCount = 0;  // Reset counter
   }
 
   int waterDetected = digitalRead(WATER_SENSOR);
