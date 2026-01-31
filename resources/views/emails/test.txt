@@ -1,4 +1,7 @@
 #include <TinyGPS++.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
@@ -7,6 +10,11 @@
 #define SIM800_TX    17
 #define GPS_RX       18
 #define GPS_TX       19
+
+// ===== WIFI CONFIGURATION =====
+const char* ssid = "TestingWifi";
+const char* password = "Abc1234567";
+const char* apiURL = "https://harness.dl-hosting.net/api_location.php";
 
 // ===== SERIAL PORTS =====
 HardwareSerial sim800(1);
@@ -33,6 +41,85 @@ bool gpsEverFixed = false;
 // ===== GPS DIAGNOSTICS =====
 unsigned long lastGPSCheck = 0;
 unsigned long gpsCharCount = 0;
+
+// ===== WIFI CONNECTION =====
+bool connectWiFi() {
+  Serial.println("📶 Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+  
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("✅ WiFi Connected!");
+    Serial.print("IP: ");
+    Serial.println(WiFi.localIP());
+    return true;
+  } else {
+    Serial.println("❌ WiFi Connection Failed");
+    return false;
+  }
+}
+
+// ===== GET LOCATION FROM API =====
+String getLocationFromAPI() {
+  Serial.println("🌐 Getting location from API...");
+  
+  if (WiFi.status() != WL_CONNECTED) {
+    if (!connectWiFi()) {
+      return "WiFi unavailable";
+    }
+  }
+  
+  HTTPClient http;
+  http.begin(apiURL);
+  
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String payload = http.getString();
+    Serial.println("API Response: " + payload);
+    
+    // Parse JSON
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+    
+    if (!error) {
+      double lat = doc["latitude"];
+      double lng = doc["longhitude"];  // Note: API uses "longhitude" (typo in API)
+      String time = doc["time"].as<String>();
+      
+      lastLat = lat;
+      lastLng = lng;
+      
+      Serial.print("✅ API Location - Lat: ");
+      Serial.print(lat, 6);
+      Serial.print(" | Lng: ");
+      Serial.println(lng, 6);
+      
+      String loc = String(lat, 6) + ", " + String(lng, 6);
+      loc += "\nMaps: https://maps.google.com/?q=" + String(lat, 6) + "," + String(lng, 6);
+      loc += "\n(WiFi-based location)";
+      
+      http.end();
+      WiFi.disconnect(true);  // Disconnect WiFi to save power
+      return loc;
+    } else {
+      Serial.println("❌ JSON Parse Error");
+    }
+  } else {
+    Serial.print("❌ HTTP Error: ");
+    Serial.println(httpCode);
+  }
+  
+  http.end();
+  WiFi.disconnect(true);
+  return "API unavailable";
+}
 
 // ===== SIM800 RESPONSE =====
 void waitForResponse(int timeout = 2000) {
@@ -113,8 +200,10 @@ String getGPSLocation() {
     return loc;
   }
 
-  Serial.println("❌ No GPS data available");
-  return "GPS unavailable";
+  Serial.println("❌ No GPS data available - trying WiFi API");
+  
+  // GPS failed, try WiFi API
+  return getLocationFromAPI();
 }
 
 // ===== SEND SMS =====
@@ -165,6 +254,11 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // Connect WiFi on startup
+  connectWiFi();
+  delay(2000);
+  WiFi.disconnect(true);  // Disconnect after initial connection test
+  
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
 
