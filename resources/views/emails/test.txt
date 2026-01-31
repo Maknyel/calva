@@ -1,10 +1,8 @@
-#include <ESP32Servo.h>
 #include <TinyGPS++.h>
 
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
 #define RELAY_PIN    26
-#define SERVO_PIN    14
 #define SIM800_RX    16
 #define SIM800_TX    17
 #define GPS_RX       18
@@ -13,7 +11,6 @@
 // ===== SERIAL PORTS =====
 HardwareSerial sim800(1);
 HardwareSerial gpsSerial(2);
-Servo myServo;
 TinyGPSPlus gps;
 
 // ===== CONFIGURATION =====
@@ -22,13 +19,11 @@ String phoneNumber = "+639070653250";
 // ===== LOGIC VARIABLES =====
 bool triggered = false;
 bool pumpRunning = false;
-bool servoRunning = false;
 bool smsSent = false;
 unsigned long pumpStartTime = 0;
-unsigned long servoStartTime = 0;
 unsigned long detectionTime = 0;
 
-const unsigned long PUMP_DURATION = 8000;
+const unsigned long PUMP_DURATION = 8500;
 
 // ===== SIM800 RESPONSE =====
 void waitForResponse(int timeout = 2000) {
@@ -64,7 +59,7 @@ String getCurrentTime() {
   return "Time unavailable";
 }
 
-// ===== GPS LOCATION (BLOCKING, SAFE) =====
+// ===== GPS LOCATION =====
 String getGPSLocation() {
   Serial.println("📍 Acquiring GPS location...");
 
@@ -91,7 +86,7 @@ String getGPSLocation() {
   return "GPS unavailable";
 }
 
-// ===== SEND SMS (GPS MUST BE OFF) =====
+// ===== SEND SMS =====
 void sendSMS(String msg) {
   Serial.println("📤 Sending SMS...");
 
@@ -142,11 +137,7 @@ void setup() {
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
 
-  myServo.setPeriodHertz(50);
-  myServo.attach(SERVO_PIN, 500, 2400);
-  myServo.write(0);
-
-  Serial.println("✅ SYSTEM READY");
+  Serial.println("✅ SYSTEM READY (NO SERVO)");
 }
 
 // ===== LOOP =====
@@ -167,43 +158,25 @@ void loop() {
   // ===== STOP PUMP =====
   if (pumpRunning && millis() - pumpStartTime >= PUMP_DURATION) {
     pumpRunning = false;
-    servoRunning = true;
-    servoStartTime = millis();
-
     digitalWrite(RELAY_PIN, HIGH);
-    Serial.println("🔌 Pump OFF — Servo START");
-  }
 
-  // ===== SERVO ROTATION =====
-  if (servoRunning) {
-    unsigned long elapsed = millis() - servoStartTime;
+    Serial.println("🔌 Pump OFF");
 
-    if (elapsed < 2000) {
-      int angle = map(elapsed, 0, 2000, 0, 180);
-      myServo.write(angle);
-    } else {
-      servoRunning = false;
-      myServo.write(0);
+    // ===== GPS + SMS =====
+    String location = getGPSLocation();
+    String timeStr = getCurrentTime();
 
-      Serial.println("🔄 Servo DONE");
+    gpsSerial.end();   // TURN GPS OFF
+    delay(500);
 
-      // ===== GPS FIRST =====
-      String location = getGPSLocation();
-      String timeStr = getCurrentTime();
+    String sms =
+      "FLOOD ALERT!\n"
+      "Status: UNSAFE\n"
+      "Time: " + timeStr + "\n"
+      "Location:\n" + location;
 
-      // 🔴 VERY IMPORTANT
-      gpsSerial.end();   // TURN GPS OFF
-      delay(500);
-
-      String sms =
-        "FLOOD ALERT!\n"
-        "Status: UNSAFE\n"
-        "Time: " + timeStr + "\n"
-        "Location:\n" + location;
-
-      sendSMS(sms);
-      smsSent = true;
-    }
+    sendSMS(sms);
+    smsSent = true;
   }
 
   // ===== RESET =====
@@ -211,7 +184,7 @@ void loop() {
     triggered = false;
     smsSent = false;
 
-    gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX); // GPS back on
+    gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
 
     Serial.println("💚 System reset");
   }
