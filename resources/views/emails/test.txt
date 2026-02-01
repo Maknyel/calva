@@ -48,12 +48,17 @@ bool apiDataAvailable = false;
 unsigned long lastGPSCheck = 0;
 unsigned long gpsCharCount = 0;
 
+// ===== SIM800 READY FLAG =====
+bool sim800Ready = false;
+
 // ===== MONTH NAMES =====
 const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 // ===== FORWARD DECLARATIONS =====
 String formatAPITime(String rawTime);
+bool initSIM800();
+String readSIM800Response(int timeout = 2000);
 
 // ===== HELPER: days in a given month (handles leap year) =====
 int daysInMonth(int month, int year) {
@@ -66,8 +71,6 @@ int daysInMonth(int month, int year) {
 }
 
 // ===== HELPER: truncate to 4 decimal places =====
-// 120.970343249732984 → 120.9703
-// 14.123456789        →  14.1234
 double truncate4(double val) {
   if (val >= 0)
     return (int)(val * 10000) / 10000.0;
@@ -77,7 +80,7 @@ double truncate4(double val) {
 
 // ===== WIFI CONNECTION =====
 bool connectWiFi() {
-  Serial.println("📶 Connecting to WiFi...");
+  Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
   
   unsigned long start = millis();
@@ -88,19 +91,87 @@ bool connectWiFi() {
   Serial.println();
   
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("✅ WiFi Connected!");
+    Serial.println("WiFi Connected!");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
     return true;
   } else {
-    Serial.println("❌ WiFi Connection Failed");
+    Serial.println("WiFi Connection Failed");
     return false;
   }
 }
 
+// ===== READ SIM800 RESPONSE (returns full response as string) =====
+String readSIM800Response(int timeout) {
+  String response = "";
+  unsigned long start = millis();
+  while (millis() - start < timeout) {
+    while (sim800.available()) {
+      char c = sim800.read();
+      response += c;
+      Serial.write(c);
+    }
+  }
+  Serial.println();
+  return response;
+}
+
+// ===== INITIALIZE SIM800L =====
+// Waits for the module to be ready and checks network registration.
+// Call once during setup (or before first SMS if setup was skipped).
+bool initSIM800() {
+  Serial.println("Initializing SIM800L...");
+
+  // Give the module time to power on if it just started
+  delay(3000);
+
+  // Send AT until we get OK (module may need a moment)
+  for (int i = 0; i < 5; i++) {
+    sim800.println("AT");
+    String resp = readSIM800Response(1000);
+    if (resp.indexOf("OK") >= 0) {
+      Serial.println("SIM800L responded OK");
+      break;
+    }
+    Serial.println("Waiting for SIM800L...");
+    delay(1000);
+    if (i == 4) {
+      Serial.println("SIM800L not responding");
+      return false;
+    }
+  }
+
+  // Check SIM card status
+  sim800.println("AT+CPIN?");
+  String pinResp = readSIM800Response(2000);
+  Serial.println("CPIN: " + pinResp);
+  if (pinResp.indexOf("READY") < 0) {
+    Serial.println("SIM card not ready");
+    return false;
+  }
+
+  // Wait for network registration (up to 30 seconds)
+  // +CREG: 0,1 = registered home | +CREG: 0,5 = registered roaming
+  Serial.println("Waiting for network registration...");
+  for (int i = 0; i < 30; i++) {
+    sim800.println("AT+CREG?");
+    String regResp = readSIM800Response(1000);
+    Serial.println("CREG: " + regResp);
+    if (regResp.indexOf(",1") >= 0 || regResp.indexOf(",5") >= 0) {
+      Serial.println("Network registered");
+      sim800Ready = true;
+      return true;
+    }
+    delay(1000);
+  }
+
+  Serial.println("Network registration failed (timeout)");
+  return false;
+}
+
 // ===== GET DATA FROM API =====
 bool getDataFromAPI() {
-  Serial.println("🌐 Getting REAL-TIME data from API...");
+  Serial.println("Getting REAL-TIME data from API...");
   
   if (WiFi.status() != WL_CONNECTED) {
     if (!connectWiFi()) {
@@ -117,7 +188,6 @@ bool getDataFromAPI() {
     String payload = http.getString();
     Serial.println("API Response: " + payload);
     
-    // Parse JSON
     StaticJsonDocument<200> doc;
     DeserializationError error = deserializeJson(doc, payload);
     
@@ -126,12 +196,10 @@ bool getDataFromAPI() {
       apiLng = doc["longhitude"];  // Note: API uses "longhitude" (typo in API)
       String rawTime = doc["time"].as<String>();
       
-      // Convert "2026-01-31 21:38:58" to "Jan 31, 2026 21:38:58 PHT"
       apiTime = formatAPITime(rawTime);
-      
       apiDataAvailable = true;
       
-      Serial.print("✅ API Data - Lat: ");
+      Serial.print("API Data - Lat: ");
       Serial.print(apiLat, 6);
       Serial.print(" | Lng: ");
       Serial.print(apiLng, 6);
@@ -139,13 +207,13 @@ bool getDataFromAPI() {
       Serial.println(apiTime);
       
       http.end();
-      WiFi.disconnect(true);  // Disconnect WiFi to save power
+      WiFi.disconnect(true);
       return true;
     } else {
-      Serial.println("❌ JSON Parse Error");
+      Serial.println("JSON Parse Error");
     }
   } else {
-    Serial.print("❌ HTTP Error: ");
+    Serial.print("HTTP Error: ");
     Serial.println(httpCode);
   }
   
@@ -156,13 +224,10 @@ bool getDataFromAPI() {
 
 // ===== FORMAT API TIME =====
 String formatAPITime(String rawTime) {
-  // Input: "2026-01-31 21:38:58"
-  // Output: "Jan 31, 2026 21:38:58 PHT"
-  
   int year = rawTime.substring(0, 4).toInt();
   int month = rawTime.substring(5, 7).toInt();
   int day = rawTime.substring(8, 10).toInt();
-  String time = rawTime.substring(11);  // "21:38:58"
+  String time = rawTime.substring(11);
   
   String formatted = String(monthNames[month - 1]) + " " + 
                      String(day) + ", " + 
@@ -170,17 +235,6 @@ String formatAPITime(String rawTime) {
                      time + " PHT";
   
   return formatted;
-}
-
-// ===== SIM800 RESPONSE =====
-void waitForResponse(int timeout = 2000) {
-  unsigned long start = millis();
-  while (millis() - start < timeout) {
-    while (sim800.available()) {
-      Serial.write(sim800.read());
-    }
-  }
-  Serial.println();
 }
 
 // ===== TIME STRING =====
@@ -191,11 +245,9 @@ String getCurrentTime() {
     int month = gps.date.month();
     int year = gps.date.year();
 
-    // --- proper date rollover handling ---
     if (hour >= 24) {
       hour -= 24;
       day++;
-
       if (day > daysInMonth(month, year)) {
         day = 1;
         month++;
@@ -205,7 +257,6 @@ String getCurrentTime() {
         }
       }
     }
-    // --- END date rollover ---
 
     char buf[50];
     sprintf(buf, "%s %d, %04d %02d:%02d:%02d PHT",
@@ -214,8 +265,7 @@ String getCurrentTime() {
     return String(buf);
   }
   
-  // GPS time unavailable, get REAL-TIME data from API
-  Serial.println("⏰ GPS time unavailable, getting REAL-TIME from API...");
+  Serial.println("GPS time unavailable, getting REAL-TIME from API...");
   if (getDataFromAPI() && apiTime.length() > 0) {
     return apiTime;
   }
@@ -225,9 +275,8 @@ String getCurrentTime() {
 
 // ===== GPS LOCATION =====
 String getGPSLocation() {
-  Serial.println("📍 Getting GPS location...");
+  Serial.println("Getting GPS location...");
 
-  // Try to get fresh GPS data for up to 10 seconds
   unsigned long start = millis();
   int charsProcessed = 0;
   
@@ -243,7 +292,7 @@ String getGPSLocation() {
       lastLng = truncate4(gps.location.lng());
       gpsEverFixed = true;
 
-      Serial.print("✅ GPS FIX OK (Satellites: ");
+      Serial.print("GPS FIX OK (Satellites: ");
       Serial.print(gps.satellites.value());
       Serial.println(")");
       
@@ -254,80 +303,96 @@ String getGPSLocation() {
     delay(100);
   }
 
-  Serial.print("⚠️ GPS chars received during check: ");
+  Serial.print("GPS chars received during check: ");
   Serial.println(charsProcessed);
 
-  Serial.println("❌ No GPS data available - getting REAL-TIME location from API");
+  Serial.println("No GPS data available - getting REAL-TIME location from API");
   
-  // Retry API up to 5 times so we never return "GPS unavailable"
   for (int attempt = 1; attempt <= 5; attempt++) {
-    Serial.print("🔄 API location attempt ");
+    Serial.print("API location attempt ");
     Serial.print(attempt);
     Serial.println(" of 5...");
 
     if (getDataFromAPI() && (apiLat != 0.0 || apiLng != 0.0)) {
-      // FIX: truncate API coordinates to 4 decimal places, same as GPS path
       apiLat = truncate4(apiLat);
       apiLng = truncate4(apiLng);
       String loc = "https://maps.google.com/?q=" + 
                    String(apiLat, 4) + "," + String(apiLng, 4);
-      Serial.println("✅ Got location from API");
+      Serial.println("Got location from API");
       return loc;
     }
-    delay(3000);  // Wait 3 seconds before next attempt
+    delay(3000);
   }
 
-  // All API attempts failed — use last known GPS fix as fallback
   if (gpsEverFixed) {
-    Serial.println("⚠️ Using last known GPS coordinates as fallback");
+    Serial.println("Using last known GPS coordinates as fallback");
     String loc = "https://maps.google.com/?q=" +
                  String(lastLat, 4) + "," + String(lastLng, 4);
     return loc;
   }
 
-  // Absolute last resort — no GPS fix ever, no API response
-  Serial.println("❌ CRITICAL: No location source available, using 0,0");
+  Serial.println("CRITICAL: No location source available, using 0,0");
   return "https://maps.google.com/?q=0.0000,0.0000";
 }
 
 // ===== SEND SMS =====
 void sendSMS(String msg) {
-  Serial.println("📤 Sending SMS...");
+  // Make sure SIM800 is initialized before trying to send
+  if (!sim800Ready) {
+    Serial.println("SIM800L not initialized, initializing now...");
+    if (!initSIM800()) {
+      Serial.println("Cannot send SMS: SIM800L initialization failed");
+      return;
+    }
+  }
 
-  sim800.println("AT");
-  waitForResponse();
+  Serial.println("Sending SMS...");
 
+  // Set text mode
   sim800.println("AT+CMGF=1");
-  waitForResponse();
+  String resp1 = readSIM800Response(2000);
+  if (resp1.indexOf("OK") < 0) {
+    Serial.println("CMGF failed: " + resp1);
+    return;
+  }
 
+  // Set character encoding
   sim800.println("AT+CSCS=\"IRA\"");
-  waitForResponse();
+  readSIM800Response(2000);
 
+  // Start SMS to recipient
   sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
-  delay(2000);
+  delay(2000);  // Wait for the ">" prompt
 
+  // Send message body character by character
   for (uint16_t i = 0; i < msg.length(); i++) {
     sim800.write(msg[i]);
     delay(5);
   }
 
-  sim800.write(26);  // CTRL+Z
-  Serial.println("⏳ Waiting for SMS confirmation...");
+  // End SMS with CTRL+Z
+  sim800.write(26);
+  Serial.println("Waiting for SMS confirmation...");
 
+  // Wait up to 30 seconds for +CMGS: confirmation
   unsigned long t = millis();
-  while (millis() - t < 15000) {
+  while (millis() - t < 30000) {
     if (sim800.available()) {
       String r = sim800.readStringUntil('\n');
       r.trim();
       Serial.println(r);
       if (r.indexOf("+CMGS:") >= 0) {
-        Serial.println("✅ SMS SENT");
+        Serial.println("SMS SENT successfully");
+        return;
+      }
+      if (r.indexOf("ERROR") >= 0) {
+        Serial.println("SMS send failed with ERROR");
         return;
       }
     }
   }
 
-  Serial.println("⚠️ SMS status unknown");
+  Serial.println("SMS status unknown (30s timeout)");
 }
 
 // ===== SETUP =====
@@ -342,10 +407,14 @@ void setup() {
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
 
-  Serial.println("✅ SYSTEM READY");
-  Serial.println("🛰️ GPS warming up... (this may take 30-60 seconds)");
-  Serial.println("📡 Monitoring GPS data stream...");
-  Serial.println("🌐 WiFi will connect when GPS unavailable for real-time data");
+  Serial.println("SYSTEM READY");
+  Serial.println("GPS warming up... (this may take 30-60 seconds)");
+  Serial.println("Monitoring GPS data stream...");
+  Serial.println("WiFi will connect when GPS unavailable for real-time data");
+
+  // Initialize SIM800L at startup so it's ready when water is detected
+  Serial.println("Initializing SIM800L at startup...");
+  initSIM800();
 }
 
 // ===== LOOP =====
@@ -356,13 +425,12 @@ void loop() {
     gps.encode(c);
     gpsCharCount++;
     
-    // Store valid location data (truncated to 4 decimals)
     if (gps.location.isValid()) {
       lastLat = truncate4(gps.location.lat());
       lastLng = truncate4(gps.location.lng());
       if (!gpsEverFixed) {
         gpsEverFixed = true;
-        Serial.print("🛰️ GPS FIRST FIX! Satellites: ");
+        Serial.print("GPS FIRST FIX! Satellites: ");
         Serial.print(gps.satellites.value());
         Serial.print(" | Lat: ");
         Serial.print(lastLat, 4);
@@ -376,7 +444,7 @@ void loop() {
   if (millis() - lastGPSCheck > 10000) {
     lastGPSCheck = millis();
     
-    Serial.print("📊 GPS Status - Chars received: ");
+    Serial.print("GPS Status - Chars received: ");
     Serial.print(gpsCharCount);
     Serial.print(" | Satellites: ");
     Serial.print(gps.satellites.value());
@@ -387,7 +455,7 @@ void loop() {
     Serial.print("/");
     Serial.println(gps.passedChecksum());
     
-    gpsCharCount = 0;  // Reset counter
+    gpsCharCount = 0;
   }
 
   int waterDetected = digitalRead(WATER_SENSOR);
@@ -400,7 +468,7 @@ void loop() {
     detectionTime = millis();
 
     digitalWrite(RELAY_PIN, LOW);
-    Serial.println("🚨 WATER DETECTED — Pump ON");
+    Serial.println("WATER DETECTED - Pump ON");
   }
 
   // ===== STOP PUMP =====
@@ -408,23 +476,19 @@ void loop() {
     pumpRunning = false;
     digitalWrite(RELAY_PIN, HIGH);
 
-    Serial.println("🔌 Pump OFF");
+    Serial.println("Pump OFF");
 
-    // ===== RESET API DATA FLAGS (to force fresh API call) =====
+    // Reset API data flags to force fresh API call
     apiDataAvailable = false;
     apiTime = "";
     apiLat = 0.0;
     apiLng = 0.0;
 
-    // ===== GET TIME FIRST (will call API in real-time if GPS unavailable) =====
     String timeStr = getCurrentTime();
-    
-    // ===== GET LOCATION (will call API in real-time if GPS unavailable and not already fetched) =====
     String location = getGPSLocation();
 
     String sms =
       "Harness sensor detected water\n"
-      "Status: UNSAFE\n"
       "Time: " + timeStr + "\n"
       "Location: " + location;
 
@@ -437,7 +501,7 @@ void loop() {
     triggered = false;
     smsSent = false;
 
-    Serial.println("💚 System reset");
+    Serial.println("System reset");
   }
 
   delay(50);
