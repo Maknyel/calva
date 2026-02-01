@@ -57,7 +57,6 @@ const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 // ===== FORWARD DECLARATIONS =====
 String formatAPITime(String rawTime);
-bool initSIM800();
 String readSIM800Response(int timeout = 2000);
 
 // ===== HELPER: days in a given month (handles leap year) =====
@@ -114,59 +113,6 @@ String readSIM800Response(int timeout) {
   }
   Serial.println();
   return response;
-}
-
-// ===== INITIALIZE SIM800L =====
-// Waits for the module to be ready and checks network registration.
-// Call once during setup (or before first SMS if setup was skipped).
-bool initSIM800() {
-  Serial.println("Initializing SIM800L...");
-
-  // Give the module time to power on if it just started
-  delay(3000);
-
-  // Send AT until we get OK (module may need a moment)
-  for (int i = 0; i < 5; i++) {
-    sim800.println("AT");
-    String resp = readSIM800Response(1000);
-    if (resp.indexOf("OK") >= 0) {
-      Serial.println("SIM800L responded OK");
-      break;
-    }
-    Serial.println("Waiting for SIM800L...");
-    delay(1000);
-    if (i == 4) {
-      Serial.println("SIM800L not responding");
-      return false;
-    }
-  }
-
-  // Check SIM card status
-  sim800.println("AT+CPIN?");
-  String pinResp = readSIM800Response(2000);
-  Serial.println("CPIN: " + pinResp);
-  if (pinResp.indexOf("READY") < 0) {
-    Serial.println("SIM card not ready");
-    return false;
-  }
-
-  // Wait for network registration (up to 30 seconds)
-  // +CREG: 0,1 = registered home | +CREG: 0,5 = registered roaming
-  Serial.println("Waiting for network registration...");
-  for (int i = 0; i < 30; i++) {
-    sim800.println("AT+CREG?");
-    String regResp = readSIM800Response(1000);
-    Serial.println("CREG: " + regResp);
-    if (regResp.indexOf(",1") >= 0 || regResp.indexOf(",5") >= 0) {
-      Serial.println("Network registered");
-      sim800Ready = true;
-      return true;
-    }
-    delay(1000);
-  }
-
-  Serial.println("Network registration failed (timeout)");
-  return false;
 }
 
 // ===== GET DATA FROM API =====
@@ -335,64 +281,54 @@ String getGPSLocation() {
   return "https://maps.google.com/?q=0.0000,0.0000";
 }
 
-// ===== SEND SMS =====
-void sendSMS(String msg) {
-  // Make sure SIM800 is initialized before trying to send
-  if (!sim800Ready) {
-    Serial.println("SIM800L not initialized, initializing now...");
-    if (!initSIM800()) {
-      Serial.println("Cannot send SMS: SIM800L initialization failed");
-      return;
+// ===== SIM800 RESPONSE =====
+void waitForResponse(int timeout = 2000) {
+  unsigned long start = millis();
+  while (millis() - start < timeout) {
+    while (sim800.available()) {
+      Serial.write(sim800.read());
     }
   }
+  Serial.println();
+}
 
-  Serial.println("Sending SMS...");
+// ===== SEND SMS =====
+void sendSMS(String msg) {
+  Serial.println("📤 Sending SMS...");
 
-  // Set text mode
+  sim800.println("AT");
+  waitForResponse();
+
   sim800.println("AT+CMGF=1");
-  String resp1 = readSIM800Response(2000);
-  if (resp1.indexOf("OK") < 0) {
-    Serial.println("CMGF failed: " + resp1);
-    return;
-  }
+  waitForResponse();
 
-  // Set character encoding
   sim800.println("AT+CSCS=\"IRA\"");
-  readSIM800Response(2000);
+  waitForResponse();
 
-  // Start SMS to recipient
   sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
-  delay(2000);  // Wait for the ">" prompt
+  delay(2000);
 
-  // Send message body character by character
   for (uint16_t i = 0; i < msg.length(); i++) {
     sim800.write(msg[i]);
     delay(5);
   }
 
-  // End SMS with CTRL+Z
-  sim800.write(26);
-  Serial.println("Waiting for SMS confirmation...");
+  sim800.write(26);  // CTRL+Z
+  Serial.println("⏳ Waiting for SMS confirmation...");
 
-  // Wait up to 30 seconds for +CMGS: confirmation
   unsigned long t = millis();
-  while (millis() - t < 30000) {
-    if (sim800.available()) {
-      String r = sim800.readStringUntil('\n');
-      r.trim();
-      Serial.println(r);
+  while (millis() - t < 15000) {
+    while (sim800.available()) {
+      String r = sim800.readString();
+      Serial.print(r);
       if (r.indexOf("+CMGS:") >= 0) {
-        Serial.println("SMS SENT successfully");
-        return;
-      }
-      if (r.indexOf("ERROR") >= 0) {
-        Serial.println("SMS send failed with ERROR");
+        Serial.println("✅ SMS SENT");
         return;
       }
     }
   }
 
-  Serial.println("SMS status unknown (30s timeout)");
+  Serial.println("⚠️ SMS status unknown");
 }
 
 // ===== SETUP =====
@@ -414,7 +350,6 @@ void setup() {
 
   // Initialize SIM800L at startup so it's ready when water is detected
   Serial.println("Initializing SIM800L at startup...");
-  initSIM800();
 }
 
 // ===== LOOP =====
@@ -489,6 +424,7 @@ void loop() {
 
     String sms =
       "Harness sensor detected water\n"
+      "Status: UNSAFE\n"
       "Time: " + timeStr + "\n"
       "Location: " + location;
 
