@@ -62,6 +62,16 @@ int daysInMonth(int month, int year) {
   return days[month - 1];
 }
 
+// ===== HELPER: truncate to 4 decimal places =====
+// 120.970343249732984 → 120.9703
+// 14.123456789        →  14.1234
+double truncate4(double val) {
+  if (val >= 0)
+    return (int)(val * 10000) / 10000.0;
+  else
+    return -( (int)(-val * 10000) / 10000.0 );
+}
+
 // ===== WIFI CONNECTION =====
 bool connectWiFi() {
   Serial.println("📶 Connecting to WiFi...");
@@ -228,8 +238,8 @@ String getGPSLocation() {
     }
 
     if (gps.location.isValid() && gps.satellites.value() >= 4) {
-      lastLat = gps.location.lat();
-      lastLng = gps.location.lng();
+      lastLat = truncate4(gps.location.lat());
+      lastLng = truncate4(gps.location.lng());
       gpsEverFixed = true;
 
       Serial.print("✅ GPS FIX OK (Satellites: ");
@@ -237,7 +247,7 @@ String getGPSLocation() {
       Serial.println(")");
       
       String loc = "https://maps.google.com/?q=" +
-                   String(lastLat, 6) + "," + String(lastLng, 6);
+                   String(lastLat, 4) + "," + String(lastLng, 4);
       return loc;
     }
     delay(100);
@@ -267,7 +277,7 @@ String getGPSLocation() {
   if (gpsEverFixed) {
     Serial.println("⚠️ Using last known GPS coordinates as fallback");
     String loc = "https://maps.google.com/?q=" +
-                 String(lastLat, 6) + "," + String(lastLng, 6);
+                 String(lastLat, 4) + "," + String(lastLng, 4);
     return loc;
   }
 
@@ -343,18 +353,18 @@ void loop() {
     gps.encode(c);
     gpsCharCount++;
     
-    // Store valid location data
+    // Store valid location data (truncated to 4 decimals)
     if (gps.location.isValid()) {
-      lastLat = gps.location.lat();
-      lastLng = gps.location.lng();
+      lastLat = truncate4(gps.location.lat());
+      lastLng = truncate4(gps.location.lng());
       if (!gpsEverFixed) {
         gpsEverFixed = true;
         Serial.print("🛰️ GPS FIRST FIX! Satellites: ");
         Serial.print(gps.satellites.value());
         Serial.print(" | Lat: ");
-        Serial.print(lastLat, 6);
+        Serial.print(lastLat, 4);
         Serial.print(" | Lng: ");
-        Serial.println(lastLng, 6);
+        Serial.println(lastLng, 4);
       }
     }
   }
