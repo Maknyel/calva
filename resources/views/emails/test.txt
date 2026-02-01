@@ -6,8 +6,9 @@
 // ===== PIN DEFINITIONS =====
 #define WATER_SENSOR 27
 #define RELAY_PIN    26
-#define SIM800_RX    16
-#define SIM800_TX    17
+#define A7670E_RX    16
+#define A7670E_TX    17
+#define A7670E_PWR   25
 #define GPS_RX       18
 #define GPS_TX       19
 
@@ -19,7 +20,7 @@ bool systemHalted = false;
 
 
 // ===== SERIAL PORTS =====
-HardwareSerial sim800(1);
+HardwareSerial a7670e(1);
 HardwareSerial gpsSerial(2);
 TinyGPSPlus gps;
 
@@ -161,13 +162,13 @@ String formatAPITime(String rawTime) {
   return formatted;
 }
 
-// ===== READ SIM800 RESPONSE INTO STRING =====
-String readSIM800(int timeout = 2000) {
+// ===== READ A7670E RESPONSE INTO STRING =====
+String readA7670E(int timeout = 2000) {
   String result = "";
   unsigned long start = millis();
   while (millis() - start < timeout) {
-    while (sim800.available()) {
-      char c = sim800.read();
+    while (a7670e.available()) {
+      char c = a7670e.read();
       result += c;
       Serial.write(c);
     }
@@ -276,67 +277,90 @@ String getGPSLocation() {
   return "0.0000,0.0000";
 }
 
+// ===== POWER ON MODULE =====
+void powerOnA7670E() {
+  Serial.println("🔌 Powering on A7670E...");
+  pinMode(A7670E_PWR, OUTPUT);
+  digitalWrite(A7670E_PWR, HIGH);
+  delay(500);
+  digitalWrite(A7670E_PWR, LOW);
+  delay(1000);
+  digitalWrite(A7670E_PWR, HIGH);
+  delay(5000);
+}
+
 // ===== SEND SMS =====
 void sendSMS(String msg) {
   Serial.println("\n➡️ Sending SMS...");
 
-  // Kill WiFi completely before using SIM800L
+  // Kill WiFi completely before using A7670E
   Serial.println("Disconnecting WiFi...");
   WiFi.disconnect(true);
   delay(1000);
 
   // Flush any garbage in the buffer
-  while (sim800.available()) {
-    sim800.read();
+  while (a7670e.available()) {
+    a7670e.read();
   }
   delay(500);
 
   // Send AT to wake/sync the module
   Serial.println("Syncing module...");
-  sim800.println("AT");
+  a7670e.println("AT");
   delay(1000);
-  String res = readSIM800(1000);
+  String res = readA7670E(1000);
   Serial.println("AT response: " + res);
 
-  // Turn off echo — this is critical so we don't confuse echo with response
-  sim800.println("ATE0");
+  // Turn off echo
+  a7670e.println("ATE0");
   delay(1000);
-  readSIM800(1000);
+  readA7670E(1000);
 
   // Set text mode
-  sim800.println("AT+CMGF=1");
+  a7670e.println("AT+CMGF=1");
   delay(1000);
-  res = readSIM800(1000);
+  res = readA7670E(1000);
   Serial.println("CMGF response: " + res);
 
   // Set charset
-  sim800.println("AT+CSCS=\"GSM\"");
+  a7670e.println("AT+CSCS=\"GSM\"");
   delay(1000);
-  readSIM800(1000);
+  readA7670E(1000);
 
   // Check signal
-  sim800.println("AT+CSQ");
+  a7670e.println("AT+CSQ");
   delay(1000);
-  res = readSIM800(1000);
+  res = readA7670E(1000);
   Serial.println("Signal: " + res);
 
-  // Check registration
-  sim800.println("AT+CREG?");
+  // Check 2G/3G registration
+  a7670e.println("AT+CREG?");
   delay(1000);
-  res = readSIM800(1000);
+  res = readA7670E(1000);
   Serial.println("Network: " + res);
+
+  // Set auto network mode (2G/3G/4G)
+  a7670e.println("AT+CNETMODE=0");
+  delay(1000);
+  readA7670E(1000);
+
+  // Check 4G registration
+  a7670e.println("AT+CEREG?");
+  delay(1000);
+  res = readA7670E(1000);
+  Serial.println("4G Network: " + res);
 
   // Start SMS
   Serial.println("Sending AT+CMGS...");
-  sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
+  a7670e.println("AT+CMGS=\"" + phoneNumber + "\"");
   delay(3000);
 
   // Wait for '>' prompt
   bool promptReceived = false;
   unsigned long promptWait = millis();
   while (millis() - promptWait < 5000) {
-    if (sim800.available()) {
-      char c = sim800.read();
+    if (a7670e.available()) {
+      char c = a7670e.read();
       Serial.write(c);
       if (c == '>') {
         promptReceived = true;
@@ -347,35 +371,35 @@ void sendSMS(String msg) {
 
   if (!promptReceived) {
     Serial.println("\n❌ No prompt received! Aborting SMS.");
-    sim800.write(27);
+    a7670e.write(27);
     return;
   }
 
   Serial.println("\n✅ Prompt received, sending message...");
   delay(500);
 
-  // Send entire message in one go — more reliable than byte-by-byte for URLs
-  sim800.print(msg);
+  // Send entire message in one go
+  a7670e.print(msg);
   Serial.println(msg);
 
   delay(2000);
 
   // Flush any echoed characters before sending Ctrl+Z
-  while (sim800.available()) {
-    sim800.read();
+  while (a7670e.available()) {
+    a7670e.read();
   }
   delay(500);
 
   // Send Ctrl+Z to finalize and send the SMS
-  sim800.write(26);
+  a7670e.write(26);
   Serial.println("\n📤 Ctrl+Z sent. Waiting for +CMGS:...");
 
-  // Wait for +CMGS: or ERROR — with echo off, response should be clean
+  // Wait for +CMGS: or ERROR
   String response = "";
   unsigned long sendStart = millis();
   while (millis() - sendStart < 30000) {
-    while (sim800.available()) {
-      char c = sim800.read();
+    while (a7670e.available()) {
+      char c = a7670e.read();
       response += c;
       Serial.write(c);
     }
@@ -404,7 +428,50 @@ void setup() {
   delay(1000);
   
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-  sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
+
+  powerOnA7670E();
+
+  // A7670E baud rate auto-detect
+  int baudRates[] = {115200, 9600, 19200, 38400, 57600};
+  bool found = false;
+
+  for (int i = 0; i < 5; i++) {
+    Serial.print("Trying baud rate: ");
+    Serial.println(baudRates[i]);
+
+    a7670e.begin(baudRates[i], SERIAL_8N1, A7670E_RX, A7670E_TX);
+    delay(1000);
+
+    // Flush
+    while (a7670e.available()) a7670e.read();
+
+    a7670e.println("AT");
+    delay(2000);
+
+    String res = "";
+    while (a7670e.available()) {
+      res += (char)a7670e.read();
+    }
+
+    Serial.print("Response: ");
+    Serial.println(res);
+
+    if (res.indexOf("OK") >= 0) {
+      Serial.print("A7670E found at baud rate: ");
+      Serial.println(baudRates[i]);
+      found = true;
+      break;
+    }
+
+    a7670e.end();
+    delay(500);
+  }
+
+  if (!found) {
+    Serial.println("A7670E not responding at any baud rate!");
+  }
+  
+  delay(3000);
 
   Serial.println("SYSTEM READY");
   Serial.println("GPS warming up... (this may take 30-60 seconds)");
@@ -486,19 +553,30 @@ void loop() {
     // Time SECOND — uses cached apiTime if GPS time unavailable
     String timeStr = getCurrentTime();
 
-    // Location now includes a Google Maps link
-    String sms =
+    // SMS 1 — Alert info
+    String sms1 =
       "Harness sensor detected water\r\n"
       "Status: UNSAFE\r\n"
-      "Time: " + timeStr + "\r\n"
-      "Location: http://maps.google.com/maps/?q=" + location;
+      "Time: " + timeStr;
 
-    Serial.println("\n📱 SMS Content:");
+    // SMS 2 — Location only
+    String sms2 =
+      "Location: " + location;
+
+    Serial.println("\n📱 SMS 1 Content:");
     Serial.println("---------------------------------");
-    Serial.println(sms);
+    Serial.println(sms1);
     Serial.println("---------------------------------");
 
-    sendSMS(sms);
+    sendSMS(sms1);
+    delay(5000);
+
+    Serial.println("\n📱 SMS 2 Content:");
+    Serial.println("---------------------------------");
+    Serial.println(sms2);
+    Serial.println("---------------------------------");
+
+    sendSMS(sms2);
     systemHalted = true;
 
     smsSent = true;
