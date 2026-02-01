@@ -198,7 +198,13 @@ String getCurrentTime() {
     return String(buf);
   }
   
-  Serial.println("GPS time unavailable, getting REAL-TIME from API...");
+  Serial.println("GPS time unavailable, using cached API time...");
+  if (apiDataAvailable && apiTime.length() > 0) {
+    return apiTime;
+  }
+
+  // Last resort: try a fresh API call
+  Serial.println("No cached API time, making fresh API call...");
   if (getDataFromAPI() && apiTime.length() > 0) {
     return apiTime;
   }
@@ -286,7 +292,7 @@ void sendSMS(String msg) {
   waitForResponse(1000);
   
   Serial.print("Character set: ");
-  sim800.println("AT+CSCS=\"IRA\"");
+  sim800.println("AT+CSCS=\"GSM\"");
   waitForResponse(1000);
   
   Serial.print("Signal: ");
@@ -352,6 +358,7 @@ void sendSMS(String msg) {
       Serial.println("\n❌ SMS FAILED!");
       return;
     }
+    delay(100);
   }
   
   Serial.println("\n⚠️ SMS status unknown (timeout)");
@@ -442,8 +449,10 @@ void loop() {
     apiLat = 0.0;
     apiLng = 0.0;
 
-    String timeStr = getCurrentTime();
+    // Location FIRST — this triggers the API call and caches apiTime
     String location = getGPSLocation();
+    // Time SECOND — uses cached apiTime if GPS time unavailable
+    String timeStr = getCurrentTime();
 
     String sms =
       "Harness sensor detected water\n"
