@@ -52,6 +52,16 @@ unsigned long gpsCharCount = 0;
 const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+// ===== HELPER: days in a given month (handles leap year) =====
+int daysInMonth(int month, int year) {
+  const int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  if (month == 2) {
+    bool leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    return leap ? 29 : 28;
+  }
+  return days[month - 1];
+}
+
 // ===== WIFI CONNECTION =====
 bool connectWiFi() {
   Serial.println("📶 Connecting to WiFi...");
@@ -164,15 +174,27 @@ void waitForResponse(int timeout = 2000) {
 String getCurrentTime() {
   // First, try GPS time
   if (gps.time.isValid() && gps.date.isValid()) {
-    int hour = gps.time.hour() + 8;
+    int hour = gps.time.hour() + 8;  // UTC to PHT
     int day = gps.date.day();
     int month = gps.date.month();
     int year = gps.date.year();
 
+    // --- FIX: proper date rollover handling ---
     if (hour >= 24) {
       hour -= 24;
       day++;
+
+      // If day exceeds the number of days in this month, roll to next month
+      if (day > daysInMonth(month, year)) {
+        day = 1;
+        month++;
+        if (month > 12) {
+          month = 1;
+          year++;
+        }
+      }
     }
+    // --- END FIX ---
 
     char buf[50];
     sprintf(buf, "%s %d, %04d %02d:%02d:%02d PHT",
@@ -226,14 +248,34 @@ String getGPSLocation() {
 
   Serial.println("❌ No GPS data available - getting REAL-TIME location from API");
   
-  // GPS failed, get REAL-TIME data from WiFi API
-  if (getDataFromAPI()) {
-    String loc = "https://maps.google.com/?q=" + 
-                 String(apiLat, 6) + "," + String(apiLng, 6);
+  // --- FIX: retry API up to 5 times so we never return "GPS unavailable" ---
+  for (int attempt = 1; attempt <= 5; attempt++) {
+    Serial.print("🔄 API location attempt ");
+    Serial.print(attempt);
+    Serial.println(" of 5...");
+
+    if (getDataFromAPI() && (apiLat != 0.0 || apiLng != 0.0)) {
+      String loc = "https://maps.google.com/?q=" + 
+                   String(apiLat, 6) + "," + String(apiLng, 6);
+      Serial.println("✅ Got location from API");
+      return loc;
+    }
+    delay(3000);  // Wait 3 seconds before next attempt
+  }
+
+  // All API attempts failed — use last known GPS fix as fallback
+  if (gpsEverFixed) {
+    Serial.println("⚠️ Using last known GPS coordinates as fallback");
+    String loc = "https://maps.google.com/?q=" +
+                 String(lastLat, 6) + "," + String(lastLng, 6);
     return loc;
   }
-  
-  return "GPS unavailable";
+
+  // Absolute last resort — no GPS fix ever, no API response
+  // Returns a valid Google Maps link (origin) so SMS is never missing coordinates
+  Serial.println("❌ CRITICAL: No location source available, using 0,0");
+  return "https://maps.google.com/?q=0.000000,0.000000";
+  // --- END FIX ---
 }
 
 // ===== SEND SMS =====
