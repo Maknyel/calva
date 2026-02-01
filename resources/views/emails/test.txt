@@ -48,16 +48,9 @@ bool apiDataAvailable = false;
 unsigned long lastGPSCheck = 0;
 unsigned long gpsCharCount = 0;
 
-// ===== SIM800 READY FLAG =====
-bool sim800Ready = false;
-
 // ===== MONTH NAMES =====
 const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-// ===== FORWARD DECLARATIONS =====
-String formatAPITime(String rawTime);
-String readSIM800Response(int timeout = 2000);
 
 // ===== HELPER: days in a given month (handles leap year) =====
 int daysInMonth(int month, int year) {
@@ -100,22 +93,9 @@ bool connectWiFi() {
   }
 }
 
-// ===== READ SIM800 RESPONSE (returns full response as string) =====
-String readSIM800Response(int timeout) {
-  String response = "";
-  unsigned long start = millis();
-  while (millis() - start < timeout) {
-    while (sim800.available()) {
-      char c = sim800.read();
-      response += c;
-      Serial.write(c);
-    }
-  }
-  Serial.println();
-  return response;
-}
-
 // ===== GET DATA FROM API =====
+// NOTE: Does NOT disconnect WiFi anymore. Caller is responsible for
+// disconnecting WiFi after all work (including SMS) is complete.
 bool getDataFromAPI() {
   Serial.println("Getting REAL-TIME data from API...");
   
@@ -153,7 +133,7 @@ bool getDataFromAPI() {
       Serial.println(apiTime);
       
       http.end();
-      WiFi.disconnect(true);
+      // DO NOT disconnect WiFi here
       return true;
     } else {
       Serial.println("JSON Parse Error");
@@ -164,7 +144,7 @@ bool getDataFromAPI() {
   }
   
   http.end();
-  WiFi.disconnect(true);
+  // DO NOT disconnect WiFi here
   return false;
 }
 
@@ -181,6 +161,17 @@ String formatAPITime(String rawTime) {
                      time + " PHT";
   
   return formatted;
+}
+
+// ===== SIM800 RESPONSE =====
+void waitForResponse(int timeout = 2000) {
+  unsigned long start = millis();
+  while (millis() - start < timeout) {
+    while (sim800.available()) {
+      Serial.write(sim800.read());
+    }
+  }
+  Serial.println();
 }
 
 // ===== TIME STRING =====
@@ -281,20 +272,9 @@ String getGPSLocation() {
   return "https://maps.google.com/?q=0.0000,0.0000";
 }
 
-// ===== SIM800 RESPONSE =====
-void waitForResponse(int timeout = 2000) {
-  unsigned long start = millis();
-  while (millis() - start < timeout) {
-    while (sim800.available()) {
-      Serial.write(sim800.read());
-    }
-  }
-  Serial.println();
-}
-
 // ===== SEND SMS =====
 void sendSMS(String msg) {
-  Serial.println("📤 Sending SMS...");
+  Serial.println("Sending SMS...");
 
   sim800.println("AT");
   waitForResponse();
@@ -314,21 +294,28 @@ void sendSMS(String msg) {
   }
 
   sim800.write(26);  // CTRL+Z
-  Serial.println("⏳ Waiting for SMS confirmation...");
+  Serial.println("Waiting for SMS confirmation...");
 
+  // Read line-by-line so we don't miss +CMGS: arriving in a separate chunk
   unsigned long t = millis();
-  while (millis() - t < 15000) {
-    while (sim800.available()) {
-      String r = sim800.readString();
-      Serial.print(r);
+  while (millis() - t < 30000) {
+    if (sim800.available()) {
+      String r = sim800.readStringUntil('\n');
+      r.trim();
+      if (r.length() == 0) continue;  // skip empty lines
+      Serial.println(r);
       if (r.indexOf("+CMGS:") >= 0) {
-        Serial.println("✅ SMS SENT");
+        Serial.println("SMS SENT successfully");
+        return;
+      }
+      if (r.indexOf("ERROR") >= 0) {
+        Serial.println("SMS send failed with ERROR");
         return;
       }
     }
   }
 
-  Serial.println("⚠️ SMS status unknown");
+  Serial.println("SMS status unknown (30s timeout)");
 }
 
 // ===== SETUP =====
@@ -347,9 +334,6 @@ void setup() {
   Serial.println("GPS warming up... (this may take 30-60 seconds)");
   Serial.println("Monitoring GPS data stream...");
   Serial.println("WiFi will connect when GPS unavailable for real-time data");
-
-  // Initialize SIM800L at startup so it's ready when water is detected
-  Serial.println("Initializing SIM800L at startup...");
 }
 
 // ===== LOOP =====
@@ -428,8 +412,15 @@ void loop() {
       "Time: " + timeStr + "\n"
       "Location: " + location;
 
+    // Send SMS first, then disconnect WiFi afterward
     sendSMS(sms);
     smsSent = true;
+
+    // NOW safe to disconnect WiFi after SMS is done
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Disconnecting WiFi to save power");
+      WiFi.disconnect(true);
+    }
   }
 
   // ===== RESET =====
