@@ -15,6 +15,8 @@
 const char* ssid = "TestingWifi";
 const char* password = "Abc1234567";
 const char* apiURL = "https://harness.dl-hosting.net/api_location.php";
+bool systemHalted = false;
+
 
 // ===== SERIAL PORTS =====
 HardwareSerial sim800(1);
@@ -238,7 +240,7 @@ String getGPSLocation() {
       Serial.print(gps.satellites.value());
       Serial.println(")");
       
-      String loc = String(lastLat, 4) + "," + String(lastLng, 4);
+      String loc = String(lastLat, 6) + "," + String(lastLng, 6);
       return loc;
     }
     delay(100);
@@ -257,7 +259,7 @@ String getGPSLocation() {
     if (getDataFromAPI() && (apiLat != 0.0 || apiLng != 0.0)) {
       apiLat = truncate4(apiLat);
       apiLng = truncate4(apiLng);
-      String loc = String(apiLat, 4) + "," + String(apiLng, 4);
+      String loc = String(apiLat, 6) + "," + String(apiLng, 6);
       Serial.println("Got location from API");
       return loc;
     }
@@ -266,7 +268,7 @@ String getGPSLocation() {
 
   if (gpsEverFixed) {
     Serial.println("Using last known GPS coordinates as fallback");
-    String loc = String(lastLat, 4) + "," + String(lastLng, 4);
+    String loc = String(lastLat, 6) + "," + String(lastLng, 6);
     return loc;
   }
 
@@ -408,6 +410,8 @@ void setup() {
 
 // ===== LOOP =====
 void loop() {
+//  if (systemHalted) return;
+
   // ===== CONTINUOUSLY UPDATE GPS =====
   while (gpsSerial.available()) {
     char c = gpsSerial.read();
@@ -422,9 +426,9 @@ void loop() {
         Serial.print("GPS FIRST FIX! Satellites: ");
         Serial.print(gps.satellites.value());
         Serial.print(" | Lat: ");
-        Serial.print(lastLat, 4);
+        Serial.print(lastLat, 6);
         Serial.print(" | Lng: ");
-        Serial.println(lastLng, 4);
+        Serial.println(lastLng, 6);
       }
     }
   }
@@ -483,7 +487,7 @@ void loop() {
       "Harness sensor detected water\n"
       "Status: UNSAFE\n"
       "Time: " + timeStr + "\n"
-      "Location: geo:" + location;
+      "Location: " + location;
 
     Serial.println("\n📱 SMS Content:");
     Serial.println("---------------------------------");
@@ -491,6 +495,8 @@ void loop() {
     Serial.println("---------------------------------");
 
     sendSMS(sms);
+    systemHalted = true;
+
     smsSent = true;
   }
 
