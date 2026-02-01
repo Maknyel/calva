@@ -94,8 +94,6 @@ bool connectWiFi() {
 }
 
 // ===== GET DATA FROM API =====
-// NOTE: Does NOT disconnect WiFi anymore. Caller is responsible for
-// disconnecting WiFi after all work (including SMS) is complete.
 bool getDataFromAPI() {
   Serial.println("Getting REAL-TIME data from API...");
   
@@ -133,7 +131,6 @@ bool getDataFromAPI() {
       Serial.println(apiTime);
       
       http.end();
-      // DO NOT disconnect WiFi here
       return true;
     } else {
       Serial.println("JSON Parse Error");
@@ -144,7 +141,6 @@ bool getDataFromAPI() {
   }
   
   http.end();
-  // DO NOT disconnect WiFi here
   return false;
 }
 
@@ -161,6 +157,18 @@ String formatAPITime(String rawTime) {
                      time + " PHT";
   
   return formatted;
+}
+
+// ===== FLUSH SIM800 BUFFER =====
+// Clears any leftover/garbage data sitting in the SIM800L serial buffer.
+// Must be called before starting any AT command sequence.
+void flushSIM800() {
+  while (sim800.available()) {
+    char c = sim800.read();
+    Serial.print("[flush]");
+    Serial.print(c);
+  }
+  Serial.println();
 }
 
 // ===== SIM800 RESPONSE =====
@@ -276,24 +284,61 @@ String getGPSLocation() {
 void sendSMS(String msg) {
   Serial.println("Sending SMS...");
 
+  // Flush any garbage left in the SIM800L buffer from prior activity
+  Serial.println("Flushing SIM800 buffer...");
+  flushSIM800();
+
+  // Give SIM800L a moment to stabilize after WiFi activity
+  delay(1000);
+
+  // Send AT and wait for a clean OK before proceeding
   sim800.println("AT");
-  waitForResponse();
+  waitForResponse(2000);
 
   sim800.println("AT+CMGF=1");
-  waitForResponse();
+  waitForResponse(2000);
 
   sim800.println("AT+CSCS=\"IRA\"");
-  waitForResponse();
+  waitForResponse(2000);
 
   sim800.println("AT+CMGS=\"" + phoneNumber + "\"");
-  delay(2000);
+  
+  // Wait for the ">" prompt from SIM800L before writing the message
+  Serial.println("Waiting for > prompt...");
+  unsigned long promptStart = millis();
+  bool gotPrompt = false;
+  while (millis() - promptStart < 5000) {
+    if (sim800.available()) {
+      char c = sim800.read();
+      Serial.print(c);
+      if (c == '>') {
+        gotPrompt = true;
+        Serial.println();
+        break;
+      }
+    }
+  }
 
+  if (!gotPrompt) {
+    Serial.println("ERROR: No > prompt received, aborting SMS");
+    // Send ESC to cancel the pending CMGS
+    sim800.write(27);
+    delay(1000);
+    flushSIM800();
+    return;
+  }
+
+  // Small delay after prompt before sending body
+  delay(500);
+
+  // Write message body
   for (uint16_t i = 0; i < msg.length(); i++) {
     sim800.write(msg[i]);
     delay(5);
   }
 
-  sim800.write(26);  // CTRL+Z
+  // End SMS with CTRL+Z
+  sim800.write(26);
   Serial.println("Waiting for SMS confirmation...");
 
   // Read line-by-line so we don't miss +CMGS: arriving in a separate chunk
@@ -412,15 +457,15 @@ void loop() {
       "Time: " + timeStr + "\n"
       "Location: " + location;
 
-    // Send SMS first, then disconnect WiFi afterward
+    // Disconnect WiFi before SMS to fully isolate the two
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Disconnecting WiFi before SMS...");
+      WiFi.disconnect(true);
+      delay(500);  // Let WiFi stack fully release
+    }
+
     sendSMS(sms);
     smsSent = true;
-
-    // NOW safe to disconnect WiFi after SMS is done
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("Disconnecting WiFi to save power");
-      WiFi.disconnect(true);
-    }
   }
 
   // ===== RESET =====
