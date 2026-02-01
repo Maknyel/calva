@@ -354,15 +354,19 @@ void sendSMS(String msg) {
   Serial.println("\n✅ Prompt received, sending message...");
   delay(500);
 
-  // Write message body
-  for (unsigned int i = 0; i < msg.length(); i++) {
-    sim800.write(msg[i]);
-    delay(10);
+  // Send entire message in one go — more reliable than byte-by-byte for URLs
+  sim800.print(msg);
+  Serial.println(msg);
+
+  delay(2000);
+
+  // Flush any echoed characters before sending Ctrl+Z
+  while (sim800.available()) {
+    sim800.read();
   }
+  delay(500);
 
-  delay(1000);
-
-  // Send Ctrl+Z
+  // Send Ctrl+Z to finalize and send the SMS
   sim800.write(26);
   Serial.println("\n📤 Ctrl+Z sent. Waiting for +CMGS:...");
 
@@ -482,12 +486,12 @@ void loop() {
     // Time SECOND — uses cached apiTime if GPS time unavailable
     String timeStr = getCurrentTime();
 
-    // Location is now just "14.4152,120.9854" — no URL characters
+    // Location now includes a Google Maps link
     String sms =
-      "Harness sensor detected water\n"
-      "Status: UNSAFE\n"
-      "Time: " + timeStr + "\n"
-      "Location: " + location;
+      "Harness sensor detected water\r\n"
+      "Status: UNSAFE\r\n"
+      "Time: " + timeStr + "\r\n"
+      "Location: http://maps.google.com/maps/?q=" + location;
 
     Serial.println("\n📱 SMS Content:");
     Serial.println("---------------------------------");
