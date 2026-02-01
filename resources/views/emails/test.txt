@@ -182,14 +182,18 @@ void waitForResponse(int timeout = 2000) {
 
 // ===== TIME STRING =====
 String getCurrentTime() {
-  // First, try GPS time
-  if (gps.time.isValid() && gps.date.isValid()) {
+  // FIX: require a valid location fix AND >= 4 satellites before trusting GPS time.
+  // gps.time.isValid() and gps.date.isValid() only mean TinyGPS++ successfully
+  // *parsed* those fields from an NMEA sentence — not that the values are accurate.
+  // Without a position fix the date defaults to month=0, day=0, year=2000,
+  // which produced "b 0, 2000 08:00:00 PHT" in the SMS.
+  if (gps.time.isValid() && gps.date.isValid() && gps.location.isValid() && gps.satellites.value() >= 4) {
     int hour = gps.time.hour() + 8;  // UTC to PHT
     int day = gps.date.day();
     int month = gps.date.month();
     int year = gps.date.year();
 
-    // --- FIX: proper date rollover handling ---
+    // --- proper date rollover handling ---
     if (hour >= 24) {
       hour -= 24;
       day++;
@@ -204,7 +208,7 @@ String getCurrentTime() {
         }
       }
     }
-    // --- END FIX ---
+    // --- END date rollover ---
 
     char buf[50];
     sprintf(buf, "%s %d, %04d %02d:%02d:%02d PHT",
@@ -258,7 +262,7 @@ String getGPSLocation() {
 
   Serial.println("❌ No GPS data available - getting REAL-TIME location from API");
   
-  // --- FIX: retry API up to 5 times so we never return "GPS unavailable" ---
+  // Retry API up to 5 times so we never return "GPS unavailable"
   for (int attempt = 1; attempt <= 5; attempt++) {
     Serial.print("🔄 API location attempt ");
     Serial.print(attempt);
@@ -285,7 +289,6 @@ String getGPSLocation() {
   // Returns a valid Google Maps link (origin) so SMS is never missing coordinates
   Serial.println("❌ CRITICAL: No location source available, using 0,0");
   return "https://maps.google.com/?q=0.000000,0.000000";
-  // --- END FIX ---
 }
 
 // ===== SEND SMS =====
