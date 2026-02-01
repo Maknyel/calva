@@ -38,9 +38,19 @@ double lastLat = 0.0;
 double lastLng = 0.0;
 bool gpsEverFixed = false;
 
+// ===== STORE API DATA =====
+String apiTime = "";
+double apiLat = 0.0;
+double apiLng = 0.0;
+bool apiDataAvailable = false;
+
 // ===== GPS DIAGNOSTICS =====
 unsigned long lastGPSCheck = 0;
 unsigned long gpsCharCount = 0;
+
+// ===== MONTH NAMES =====
+const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 // ===== WIFI CONNECTION =====
 bool connectWiFi() {
@@ -65,13 +75,13 @@ bool connectWiFi() {
   }
 }
 
-// ===== GET LOCATION FROM API =====
-String getLocationFromAPI() {
-  Serial.println("🌐 Getting location from API...");
+// ===== GET DATA FROM API =====
+bool getDataFromAPI() {
+  Serial.println("🌐 Getting REAL-TIME data from API...");
   
   if (WiFi.status() != WL_CONNECTED) {
     if (!connectWiFi()) {
-      return "WiFi unavailable";
+      return false;
     }
   }
   
@@ -89,25 +99,25 @@ String getLocationFromAPI() {
     DeserializationError error = deserializeJson(doc, payload);
     
     if (!error) {
-      double lat = doc["latitude"];
-      double lng = doc["longhitude"];  // Note: API uses "longhitude" (typo in API)
-      String time = doc["time"].as<String>();
+      apiLat = doc["latitude"];
+      apiLng = doc["longhitude"];  // Note: API uses "longhitude" (typo in API)
+      String rawTime = doc["time"].as<String>();
       
-      lastLat = lat;
-      lastLng = lng;
+      // Convert "2026-01-31 21:38:58" to "Jan 31, 2026 21:38:58 PHT"
+      apiTime = formatAPITime(rawTime);
       
-      Serial.print("✅ API Location - Lat: ");
-      Serial.print(lat, 6);
+      apiDataAvailable = true;
+      
+      Serial.print("✅ API Data - Lat: ");
+      Serial.print(apiLat, 6);
       Serial.print(" | Lng: ");
-      Serial.println(lng, 6);
-      
-      String loc = String(lat, 6) + ", " + String(lng, 6);
-      loc += "\nMaps: https://maps.google.com/?q=" + String(lat, 6) + "," + String(lng, 6);
-      loc += "\n(WiFi-based location)";
+      Serial.print(apiLng, 6);
+      Serial.print(" | Time: ");
+      Serial.println(apiTime);
       
       http.end();
       WiFi.disconnect(true);  // Disconnect WiFi to save power
-      return loc;
+      return true;
     } else {
       Serial.println("❌ JSON Parse Error");
     }
@@ -118,7 +128,25 @@ String getLocationFromAPI() {
   
   http.end();
   WiFi.disconnect(true);
-  return "API unavailable";
+  return false;
+}
+
+// ===== FORMAT API TIME =====
+String formatAPITime(String rawTime) {
+  // Input: "2026-01-31 21:38:58"
+  // Output: "Jan 31, 2026 21:38:58 PHT"
+  
+  int year = rawTime.substring(0, 4).toInt();
+  int month = rawTime.substring(5, 7).toInt();
+  int day = rawTime.substring(8, 10).toInt();
+  String time = rawTime.substring(11);  // "21:38:58"
+  
+  String formatted = String(monthNames[month - 1]) + " " + 
+                     String(day) + ", " + 
+                     String(year) + " " + 
+                     time + " PHT";
+  
+  return formatted;
 }
 
 // ===== SIM800 RESPONSE =====
@@ -134,6 +162,7 @@ void waitForResponse(int timeout = 2000) {
 
 // ===== TIME STRING =====
 String getCurrentTime() {
+  // First, try GPS time
   if (gps.time.isValid() && gps.date.isValid()) {
     int hour = gps.time.hour() + 8;
     int day = gps.date.day();
@@ -145,11 +174,17 @@ String getCurrentTime() {
       day++;
     }
 
-    char buf[40];
-    sprintf(buf, "%02d/%02d/%04d %02d:%02d:%02d PHT",
-            month, day, year, hour,
+    char buf[50];
+    sprintf(buf, "%s %d, %04d %02d:%02d:%02d PHT",
+            monthNames[month - 1], day, year, hour,
             gps.time.minute(), gps.time.second());
     return String(buf);
+  }
+  
+  // GPS time unavailable, get REAL-TIME data from API
+  Serial.println("⏰ GPS time unavailable, getting REAL-TIME from API...");
+  if (getDataFromAPI() && apiTime.length() > 0) {
+    return apiTime;
   }
 
   return "Time unavailable";
@@ -179,9 +214,8 @@ String getGPSLocation() {
       Serial.print(gps.satellites.value());
       Serial.println(")");
       
-      String loc = String(lastLat, 6) + ", " + String(lastLng, 6);
-      loc += "\nMaps: https://maps.google.com/?q=" +
-             String(lastLat, 6) + "," + String(lastLng, 6);
+      String loc = "https://maps.google.com/?q=" +
+                   String(lastLat, 6) + "," + String(lastLng, 6);
       return loc;
     }
     delay(100);
@@ -190,20 +224,16 @@ String getGPSLocation() {
   Serial.print("⚠️ GPS chars received during check: ");
   Serial.println(charsProcessed);
 
-  // If no fresh fix, use last known location
-  if (gpsEverFixed) {
-    Serial.println("⚠️ Using last known GPS location");
-    String loc = String(lastLat, 6) + ", " + String(lastLng, 6);
-    loc += "\nMaps: https://maps.google.com/?q=" +
-           String(lastLat, 6) + "," + String(lastLng, 6);
-    loc += "\n(Last known position)";
+  Serial.println("❌ No GPS data available - getting REAL-TIME location from API");
+  
+  // GPS failed, get REAL-TIME data from WiFi API
+  if (getDataFromAPI()) {
+    String loc = "https://maps.google.com/?q=" + 
+                 String(apiLat, 6) + "," + String(apiLng, 6);
     return loc;
   }
-
-  Serial.println("❌ No GPS data available - trying WiFi API");
   
-  // GPS failed, try WiFi API
-  return getLocationFromAPI();
+  return "GPS unavailable";
 }
 
 // ===== SEND SMS =====
@@ -253,11 +283,6 @@ void setup() {
 
   Serial.begin(115200);
   delay(1000);
-
-  // Connect WiFi on startup
-  connectWiFi();
-  delay(2000);
-  WiFi.disconnect(true);  // Disconnect after initial connection test
   
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   sim800.begin(9600, SERIAL_8N1, SIM800_RX, SIM800_TX);
@@ -265,6 +290,7 @@ void setup() {
   Serial.println("✅ SYSTEM READY");
   Serial.println("🛰️ GPS warming up... (this may take 30-60 seconds)");
   Serial.println("📡 Monitoring GPS data stream...");
+  Serial.println("🌐 WiFi will connect when GPS unavailable for real-time data");
 }
 
 // ===== LOOP =====
@@ -329,15 +355,23 @@ void loop() {
 
     Serial.println("🔌 Pump OFF");
 
-    // ===== GPS + SMS =====
-    String location = getGPSLocation();
+    // ===== RESET API DATA FLAGS (to force fresh API call) =====
+    apiDataAvailable = false;
+    apiTime = "";
+    apiLat = 0.0;
+    apiLng = 0.0;
+
+    // ===== GET TIME FIRST (will call API in real-time if GPS unavailable) =====
     String timeStr = getCurrentTime();
+    
+    // ===== GET LOCATION (will call API in real-time if GPS unavailable and not already fetched) =====
+    String location = getGPSLocation();
 
     String sms =
-      "FLOOD ALERT!\n"
+      "Harness sensor detected water\n"
       "Status: UNSAFE\n"
       "Time: " + timeStr + "\n"
-      "Location:\n" + location;
+      "Location: " + location;
 
     sendSMS(sms);
     smsSent = true;
