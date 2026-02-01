@@ -316,9 +316,10 @@ void sendSMS(String msg) {
 
   unsigned long t = millis();
   while (millis() - t < 15000) {
-    while (sim800.available()) {
-      String r = sim800.readString();
-      Serial.print(r);
+    if (sim800.available()) {
+      String r = sim800.readStringUntil('\n');
+      r.trim();
+      Serial.println(r);
       if (r.indexOf("+CMGS:") >= 0) {
         Serial.println("✅ SMS SENT");
         return;
