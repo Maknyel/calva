@@ -52,6 +52,9 @@ unsigned long gpsCharCount = 0;
 const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+// ===== FORWARD DECLARATIONS =====
+String formatAPITime(String rawTime);
+
 // ===== HELPER: days in a given month (handles leap year) =====
 int daysInMonth(int month, int year) {
   const int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
