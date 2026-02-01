@@ -116,6 +116,15 @@ bool getDataFromAPI() {
       apiLng = doc["longhitude"];
       String rawTime = doc["time"].as<String>();
       
+      // Update contact number from API if provided
+      if (doc.containsKey("current_number")) {
+        String apiNumber = doc["current_number"].as<String>();
+        if (apiNumber.length() > 0 && apiNumber != phoneNumber) {
+          Serial.println("Updating phone number: " + phoneNumber + " -> " + apiNumber);
+          phoneNumber = apiNumber;
+        }
+      }
+      
       apiTime = formatAPITime(rawTime);
       apiDataAvailable = true;
       
