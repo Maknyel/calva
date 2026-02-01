@@ -182,11 +182,6 @@ void waitForResponse(int timeout = 2000) {
 
 // ===== TIME STRING =====
 String getCurrentTime() {
-  // FIX: require a valid location fix AND >= 4 satellites before trusting GPS time.
-  // gps.time.isValid() and gps.date.isValid() only mean TinyGPS++ successfully
-  // *parsed* those fields from an NMEA sentence — not that the values are accurate.
-  // Without a position fix the date defaults to month=0, day=0, year=2000,
-  // which produced "b 0, 2000 08:00:00 PHT" in the SMS.
   if (gps.time.isValid() && gps.date.isValid() && gps.location.isValid() && gps.satellites.value() >= 4) {
     int hour = gps.time.hour() + 8;  // UTC to PHT
     int day = gps.date.day();
@@ -198,7 +193,6 @@ String getCurrentTime() {
       hour -= 24;
       day++;
 
-      // If day exceeds the number of days in this month, roll to next month
       if (day > daysInMonth(month, year)) {
         day = 1;
         month++;
@@ -269,8 +263,11 @@ String getGPSLocation() {
     Serial.println(" of 5...");
 
     if (getDataFromAPI() && (apiLat != 0.0 || apiLng != 0.0)) {
+      // FIX: truncate API coordinates to 4 decimal places, same as GPS path
+      apiLat = truncate4(apiLat);
+      apiLng = truncate4(apiLng);
       String loc = "https://maps.google.com/?q=" + 
-                   String(apiLat, 6) + "," + String(apiLng, 6);
+                   String(apiLat, 4) + "," + String(apiLng, 4);
       Serial.println("✅ Got location from API");
       return loc;
     }
@@ -286,9 +283,8 @@ String getGPSLocation() {
   }
 
   // Absolute last resort — no GPS fix ever, no API response
-  // Returns a valid Google Maps link (origin) so SMS is never missing coordinates
   Serial.println("❌ CRITICAL: No location source available, using 0,0");
-  return "https://maps.google.com/?q=0.000000,0.000000";
+  return "https://maps.google.com/?q=0.0000,0.0000";
 }
 
 // ===== SEND SMS =====
